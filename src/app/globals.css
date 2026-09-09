@@ -1,0 +1,145 @@
+:root {
+  --bg: #f6f5f8;
+  --card: #ffffff;
+  --border: #e4e1e8;
+  --text: #1d1a22;
+  --muted: #6d6875;
+  --primary: #8b5cf6;
+  --primary-dark: #6d28d9;
+  --danger: #dc2626;
+  --ok: #16a34a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 220px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 20px 12px;
+  flex-shrink: 0;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 18px;
+  padding: 8px 12px 16px;
+  color: var(--primary-dark);
+}
+
+.nav a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.nav a:hover { background: var(--bg); color: var(--text); }
+.nav a.active { background: var(--primary); color: #fff; }
+
+.content { flex: 1; padding: 32px 40px; max-width: 1100px; }
+
+h1 { font-size: 24px; margin: 0 0 4px; }
+.subtitle { color: var(--muted); margin: 0 0 24px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.grid { display: grid; gap: 16px; }
+.grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+.stat { font-size: 28px; font-weight: 700; }
+.stat-label { color: var(--muted); font-size: 13px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+
+input, select, textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  background: #fff;
+  color: var(--text);
+}
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.field { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+
+button, .btn {
+  display: inline-block;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover, .btn:hover { background: var(--primary-dark); }
+button.ghost, .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+button.ghost:hover { background: var(--bg); color: var(--text); }
+button.link { background: none; color: var(--primary-dark); padding: 4px 6px; font-weight: 600; }
+button.link.danger { color: var(--danger); }
+
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge.AGENDADO { background: #ede9fe; color: var(--primary-dark); }
+.badge.CONCLUIDO { background: #dcfce7; color: var(--ok); }
+.badge.CANCELADO { background: #fee2e2; color: var(--danger); }
+.badge.FALTOU { background: #fef3c7; color: #b45309; }
+.badge.off { background: #f1f1f4; color: var(--muted); }
+
+.grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+dialog.dialogo {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 560px;
+  width: calc(100% - 32px);
+  color: var(--text);
+  background: var(--card);
+}
+dialog.dialogo::backdrop { background: rgba(29, 26, 34, .4); }
+
+.agenda-grade { display: grid; gap: 12px; }
+.agenda-dia { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--card); }
+.agenda-dia h3 { margin: 0 0 8px; font-size: 14px; text-transform: capitalize; }
+.slot { display: flex; justify-content: space-between; gap: 8px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 6px; }
+.slot.livre { border-style: dashed; color: var(--muted); }
+.slot .slot-info { display: flex; flex-direction: column; gap: 2px; }
+
+.row-actions { display: flex; gap: 4px; }
+.muted { color: var(--muted); }
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+.section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }

@@ -1,0 +1,34 @@
+node_modules
+.next
+out
+*.log
+prisma/dev.db
+prisma/dev.db-journal
+.env
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Environment & Secrets (AIOX)
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Dependencies (AIOX)
+node_modules/
+
+# Build & Logs (AIOX)
+dist/
+build/
+logs/
+
+# IDE & OS (AIOX)
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# AIOX Local (AIOX)
+.aiox-core/local/
+.claude/settings.local.json
+.aiox/install-log.txt

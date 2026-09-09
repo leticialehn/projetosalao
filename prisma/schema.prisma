@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Servico {
+  id           String   @id @default(cuid())
+  nome         String
+  duracaoMin   Int
+  preco        Float
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  agendamentos Agendamento[]
+}
+
+model Profissional {
+  id           String   @id @default(cuid())
+  nome         String
+  especialidade String?
+  telefone     String?
+  ativo        Boolean  @default(true)
+  comissaoPercentual Float @default(0)
+  criadoEm     DateTime @default(now())
+  agendamentos Agendamento[]
+  comissaoRegra ComissaoRegra?
+}
+
+model Cliente {
+  id           String   @id @default(cuid())
+  nome         String
+  telefone     String?
+  email        String?
+  observacoes  String?
+  criadoEm     DateTime @default(now())
+  agendamentos Agendamento[]
+}
+
+model Agendamento {
+  id             String   @id @default(cuid())
+  inicio         DateTime
+  fim            DateTime
+  status         String   @default("AGENDADO") // AGENDADO | CONCLUIDO | CANCELADO | FALTOU
+  valorCobrado   Float?
+  observacoes    String?
+  criadoEm       DateTime @default(now())
+
+  cliente        Cliente      @relation(fields: [clienteId], references: [id])
+  clienteId      String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+  profissionalId String
+  servico        Servico      @relation(fields: [servicoId], references: [id])
+  servicoId      String
+  pagamentos     Pagamento[]
+
+  @@index([inicio])
+}
+
+model Pagamento {
+  id             String   @id @default(cuid())
+  agendamento    Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  agendamentoId  String
+  valor          Float
+  formaPagamento String   // DINHEIRO | PIX | DEBITO | CREDITO
+  dataHora       DateTime @default(now())
+  conferido      Boolean  @default(false)
+  criadoEm       DateTime @default(now())
+
+  @@index([dataHora])
+  @@index([agendamentoId])
+}
+
+model ComissaoRegra {
+  id             String   @id @default(cuid())
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  profissionalId String   @unique
+  percentual     Float
+  criadoEm       DateTime @default(now())
+}
+
+model FechamentoCaixa {
+  id              String   @id @default(cuid())
+  data            DateTime @unique
+  totalDinheiro   Float
+  totalPix        Float
+  totalDebito     Float
+  totalCredito    Float
+  totalGeral      Float
+  qtdAtendimentos Int
+  ticketMedio     Float
+  observacoes     String?
+  criadoEm        DateTime @default(now())
+}
