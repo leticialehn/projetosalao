@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { exigirPapel, PAPEL_DONO } from "@/lib/sessao";
 import { brl } from "@/lib/format";
 import {
   inicioDoDia,
@@ -29,6 +30,7 @@ export default async function ComissoesPage({
 }: {
   searchParams: Promise<{ de?: string; ate?: string }>;
 }) {
+  await exigirPapel(PAPEL_DONO);
   const { de: deParam, ate: ateParam } = await searchParams;
 
   // Param ausente ou inválido cai para o mês corrente.

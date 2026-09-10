@@ -7,7 +7,7 @@ const links = [
   { href: "/", label: "Agenda", dono: false },
   { href: "/painel", label: "Painel do dia", dono: false },
   { href: "/caixa", label: "Caixa", dono: false },
-  { href: "/comissoes", label: "Comissões", dono: false },
+  { href: "/comissoes", label: "Comissões", dono: true },
   { href: "/agendamentos", label: "Agendamentos", dono: false },
   { href: "/clientes", label: "Clientes", dono: false },
   { href: "/profissionais", label: "Profissionais", dono: true },
