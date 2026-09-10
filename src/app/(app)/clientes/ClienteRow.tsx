@@ -14,7 +14,13 @@ type Cliente = {
   _count: { agendamentos: number };
 };
 
-export default function ClienteRow({ c }: { c: Cliente }) {
+export default function ClienteRow({
+  c,
+  podeExcluir = false,
+}: {
+  c: Cliente;
+  podeExcluir?: boolean;
+}) {
   const [editando, setEditando] = useState(false);
 
   if (editando) {
@@ -71,7 +77,7 @@ export default function ClienteRow({ c }: { c: Cliente }) {
           <button className="link" onClick={() => setEditando(true)}>
             Editar
           </button>
-          {c._count.agendamentos === 0 && (
+          {podeExcluir && c._count.agendamentos === 0 && (
             <DeleteButton action={excluirCliente} id={c.id} confirmMsg="Excluir este cliente?" />
           )}
         </div>

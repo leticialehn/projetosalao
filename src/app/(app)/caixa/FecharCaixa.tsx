@@ -6,9 +6,11 @@ import { fecharCaixa, reabrirCaixa } from "./actions";
 export default function FecharCaixa({
   data,
   fechado,
+  podeReabrir = false,
 }: {
   data: string;
   fechado: boolean;
+  podeReabrir?: boolean;
 }) {
   const [observacoes, setObservacoes] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -24,6 +26,13 @@ export default function FecharCaixa({
   }
 
   if (fechado) {
+    if (!podeReabrir) {
+      return (
+        <p className="muted" style={{ margin: 0 }}>
+          Só o dono pode reabrir um caixa fechado.
+        </p>
+      );
+    }
     return (
       <>
         {erro && <p style={{ color: "var(--danger)" }}>{erro}</p>}

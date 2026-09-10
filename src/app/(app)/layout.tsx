@@ -16,8 +16,8 @@ export default async function AppLayout({
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">Projeto Salão</div>
-        <Nav />
-        <Sair usuario={sessao.usuario ?? ""} />
+        <Nav papel={sessao.papel} />
+        <Sair usuario={sessao.usuario} papel={sessao.papel} />
       </aside>
       <main className="content">{children}</main>
     </div>

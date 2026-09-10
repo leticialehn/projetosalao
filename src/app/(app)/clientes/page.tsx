@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
 import { criarCliente } from "./actions";
 import ClienteRow from "./ClienteRow";
 
@@ -10,6 +11,8 @@ export default async function ClientesPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  const sessao = await exigirSessao();
+  const podeExcluir = sessao.papel === PAPEL_DONO;
   const { q } = await searchParams;
   const busca = (q ?? "").trim();
 
@@ -93,7 +96,7 @@ export default async function ClientesPage({
             </thead>
             <tbody>
               {clientes.map((c) => (
-                <ClienteRow key={c.id} c={c} />
+                <ClienteRow key={c.id} c={c} podeExcluir={podeExcluir} />
               ))}
             </tbody>
           </table>

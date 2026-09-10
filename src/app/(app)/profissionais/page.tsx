@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { exigirPapel, PAPEL_DONO } from "@/lib/sessao";
 import { criarProfissional } from "./actions";
 import ProfissionalRow from "./ProfissionalRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfissionaisPage() {
+  await exigirPapel(PAPEL_DONO);
   const profissionais = await prisma.profissional.findMany({
     orderBy: [{ ativo: "desc" }, { nome: "asc" }],
     include: { comissaoRegra: { select: { percentual: true } } },

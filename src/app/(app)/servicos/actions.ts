@@ -2,10 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { exigirSessao } from "@/lib/sessao";
+import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
 
 export async function criarServico(formData: FormData) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel !== PAPEL_DONO) return;
   const nome = String(formData.get("nome") ?? "").trim();
   const duracaoMin = Number(formData.get("duracaoMin"));
   const preco = Number(formData.get("preco"));
@@ -16,7 +17,8 @@ export async function criarServico(formData: FormData) {
 }
 
 export async function atualizarServico(formData: FormData) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel !== PAPEL_DONO) return;
   const id = String(formData.get("id"));
   const nome = String(formData.get("nome") ?? "").trim();
   const duracaoMin = Number(formData.get("duracaoMin"));
@@ -32,7 +34,8 @@ export async function atualizarServico(formData: FormData) {
 }
 
 export async function excluirServico(formData: FormData) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel !== PAPEL_DONO) return;
   const id = String(formData.get("id"));
   const emUso = await prisma.agendamento.count({ where: { servicoId: id } });
   if (emUso > 0) {

@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { exigirPapel, PAPEL_DONO } from "@/lib/sessao";
 import { criarServico } from "./actions";
 import ServicoRow from "./ServicoRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function ServicosPage() {
+  await exigirPapel(PAPEL_DONO);
   const servicos = await prisma.servico.findMany({
     orderBy: [{ ativo: "desc" }, { nome: "asc" }],
   });

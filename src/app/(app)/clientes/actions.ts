@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { exigirSessao } from "@/lib/sessao";
+import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
 
 export async function criarCliente(formData: FormData) {
   await exigirSessao();
@@ -49,7 +49,8 @@ export async function atualizarObservacoesCliente({
 }
 
 export async function excluirCliente(formData: FormData) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel !== PAPEL_DONO) return;
   const id = String(formData.get("id"));
   const emUso = await prisma.agendamento.count({ where: { clienteId: id } });
   if (emUso > 0) return;

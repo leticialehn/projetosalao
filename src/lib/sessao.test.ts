@@ -21,7 +21,9 @@ vi.mock("next/navigation", () => ({ redirect: (u: string) => redirectMock(u) }))
 process.env.SESSION_SECRET =
   "test-secret-com-mais-de-32-caracteres-aqui-ok";
 
-const { criarSessao, exigirSessao, lerSessao } = await import("./sessao");
+const { criarSessao, exigirSessao, exigirPapel, lerSessao } = await import(
+  "./sessao"
+);
 
 beforeEach(() => {
   cookieStore.clear();
@@ -45,6 +47,25 @@ describe("exigirSessao", () => {
   it("cookie de sessão adulterado → tratado como sem sessão", async () => {
     cookieStore.set("salao_sessao", "valor-invalido-nao-selado");
     await expect(exigirSessao()).rejects.toThrow("REDIRECT:/login");
+  });
+});
+
+describe("exigirPapel", () => {
+  it("papel fora da lista → redireciona para / (não para /login)", async () => {
+    await criarSessao({ usuarioId: "u1", usuario: "caixa", papel: "BALCAO" });
+    await expect(exigirPapel("DONO")).rejects.toThrow("REDIRECT:/");
+    expect(redirectMock).toHaveBeenCalledWith("/");
+  });
+
+  it("papel na lista → retorna a sessão, sem redirect", async () => {
+    await criarSessao({ usuarioId: "u1", usuario: "dono", papel: "DONO" });
+    const s = await exigirPapel("DONO");
+    expect(s.papel).toBe("DONO");
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("sem sessão → redireciona para /login", async () => {
+    await expect(exigirPapel("DONO")).rejects.toThrow("REDIRECT:/login");
   });
 });
 

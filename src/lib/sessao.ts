@@ -41,3 +41,22 @@ export async function exigirSessao(): Promise<Required<DadosSessao>> {
     papel: sessao.papel ?? "",
   };
 }
+
+export const PAPEL_DONO = "DONO";
+export const PAPEL_BALCAO = "BALCAO";
+
+/** Mensagem padrão para ação negada por papel. */
+export const ERRO_SEM_PERMISSAO = "Ação permitida apenas para o dono.";
+
+/**
+ * Guarda de rota por papel (para `page.tsx` de Server Component). Exige sessão
+ * e, se o papel não estiver na lista, redireciona para `/` (o usuário está
+ * logado, só não tem acesso àquela área).
+ */
+export async function exigirPapel(
+  ...papeis: string[]
+): Promise<Required<DadosSessao>> {
+  const sessao = await exigirSessao();
+  if (!papeis.includes(sessao.papel)) redirect("/");
+  return sessao;
+}
