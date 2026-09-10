@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { temConflito } from "@/lib/agenda";
+import { exigirSessao } from "@/lib/sessao";
 import { revalidatePath } from "next/cache";
 
 export type AgendamentoResult = { ok: boolean; erro?: string };
@@ -16,6 +17,7 @@ export async function criarAgendamento(
   _prev: AgendamentoResult,
   formData: FormData,
 ): Promise<AgendamentoResult> {
+  await exigirSessao();
   const clienteId = String(formData.get("clienteId") ?? "");
   const profissionalId = String(formData.get("profissionalId") ?? "");
   const servicoId = String(formData.get("servicoId") ?? "");
@@ -51,6 +53,7 @@ export async function remarcarAgendamento(
   _prev: AgendamentoResult,
   formData: FormData,
 ): Promise<AgendamentoResult> {
+  await exigirSessao();
   const id = String(formData.get("id") ?? "");
   const inicioRaw = String(formData.get("inicio") ?? "");
   const profissionalId = String(formData.get("profissionalId") ?? "");
@@ -93,6 +96,7 @@ export async function remarcarAgendamento(
 }
 
 export async function mudarStatus(formData: FormData) {
+  await exigirSessao();
   const id = String(formData.get("id"));
   const status = String(formData.get("status"));
   // CONCLUIDO é exclusivo da action concluirAtendimento (Story 1.4).
@@ -102,6 +106,7 @@ export async function mudarStatus(formData: FormData) {
 }
 
 export async function excluirAgendamento(formData: FormData) {
+  await exigirSessao();
   const id = String(formData.get("id"));
   await prisma.agendamento.delete({ where: { id } });
   revalidarAgenda();

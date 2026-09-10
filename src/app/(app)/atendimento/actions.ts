@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { exigirSessao } from "@/lib/sessao";
 import {
   reais,
   somarPagamentos,
@@ -37,6 +38,7 @@ export async function concluirAtendimento(
   _prev: ConcluirResult,
   formData: FormData,
 ): Promise<ConcluirResult> {
+  await exigirSessao();
   const agendamentoId = String(formData.get("agendamentoId") ?? "");
   const cortesia = formData.get("cortesia") === "on";
   const valorCobradoRaw = Number(

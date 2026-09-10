@@ -2,8 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { exigirSessao } from "@/lib/sessao";
 
 export async function criarProfissional(formData: FormData) {
+  await exigirSessao();
   const nome = String(formData.get("nome") ?? "").trim();
   const especialidade = String(formData.get("especialidade") ?? "").trim() || null;
   const telefone = String(formData.get("telefone") ?? "").trim() || null;
@@ -14,6 +16,7 @@ export async function criarProfissional(formData: FormData) {
 }
 
 export async function atualizarProfissional(formData: FormData) {
+  await exigirSessao();
   const id = String(formData.get("id"));
   const nome = String(formData.get("nome") ?? "").trim();
   const especialidade = String(formData.get("especialidade") ?? "").trim() || null;
@@ -34,6 +37,7 @@ export async function definirComissao(
   _prev: ComissaoResult,
   formData: FormData,
 ): Promise<ComissaoResult> {
+  await exigirSessao();
   const profissionalId = String(formData.get("profissionalId") ?? "").trim();
   if (!profissionalId) return { ok: false, erro: "Profissional não encontrado." };
 
@@ -68,6 +72,7 @@ export async function definirComissao(
 }
 
 export async function excluirProfissional(formData: FormData) {
+  await exigirSessao();
   const id = String(formData.get("id"));
   const emUso = await prisma.agendamento.count({ where: { profissionalId: id } });
   if (emUso > 0) {

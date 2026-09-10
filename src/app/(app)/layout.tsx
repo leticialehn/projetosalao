@@ -1,17 +1,16 @@
-import { redirect } from "next/navigation";
 import Nav from "@/components/Nav";
 import Sair from "@/components/Sair";
-import { lerSessao } from "@/lib/sessao";
+import { exigirSessao } from "@/lib/sessao";
 
-// Guarda de autenticação: roda no servidor para toda rota dentro de (app).
-// É a proteção autoritativa — o middleware é só conveniência de UX.
+// Guarda de autenticação para o render das páginas de (app). As server actions
+// têm a sua própria guarda (exigirSessao no topo de cada uma) e o middleware
+// valida o cookie antes — três camadas independentes.
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const sessao = await lerSessao();
-  if (!sessao.usuarioId) redirect("/login");
+  const sessao = await exigirSessao();
 
   return (
     <div className="layout">

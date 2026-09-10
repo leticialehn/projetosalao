@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { exigirSessao } from "@/lib/sessao";
 import { inicioDoDia, inicioDoDiaSeguinte, parseDataParam } from "@/lib/datas";
 import { resumoCaixa, type PagamentoInput } from "@/lib/financeiro";
 
@@ -23,6 +24,7 @@ export async function fecharCaixa(
   data: string,
   observacoes?: string,
 ): Promise<CaixaResult> {
+  await exigirSessao();
   const janela = janelaDoDia(data);
   if (!janela) return { ok: false, erro: "Data inválida." };
   const { de, ate } = janela;
@@ -82,6 +84,7 @@ export async function fecharCaixa(
  * Não recalcula nada — o próximo fechamento recalcula do zero.
  */
 export async function reabrirCaixa(data: string): Promise<CaixaResult> {
+  await exigirSessao();
   const janela = janelaDoDia(data);
   if (!janela) return { ok: false, erro: "Data inválida." };
   const { de, ate } = janela;

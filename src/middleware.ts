@@ -1,20 +1,30 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getIronSession } from "iron-session";
+import { opcoesSessao, type DadosSessao } from "@/lib/sessao-config";
 
-// Conveniência de UX: manda quem não tem cookie de sessão direto para /login,
-// sem renderizar a página protegida. A verificação AUTORITATIVA (validar o
-// conteúdo do cookie) é feita no servidor, em src/app/(app)/layout.tsx —
-// então uma eventual falha/bypass do middleware não expõe dados.
-export function middleware(req: NextRequest) {
-  const temCookie = req.cookies.has("salao_sessao");
-  if (!temCookie) {
+// Primeira linha de defesa: valida (unseal) o cookie de sessão de verdade e
+// redireciona para /login se não houver sessão. Também re-salva a sessão a cada
+// request, o que faz a expiração ser por INATIVIDADE (sliding), não absoluta.
+//
+// A guarda em src/app/(app)/layout.tsx e o exigirSessao() nas server actions
+// continuam existindo como defesa em profundidade (o middleware é contornável —
+// CVE-2025-29927).
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const sessao = await getIronSession<DadosSessao>(req, res, opcoesSessao());
+
+  if (!sessao.usuarioId) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+
+  // Renova a validade do cookie (sliding expiration).
+  await sessao.save();
+  return res;
 }
 
 export const config = {
-  // Tudo, exceto: /login, rotas internas do Next, arquivos estáticos e favicon.
+  // Tudo, exceto: /login, rotas internas do Next, assets e favicon.
   matcher: ["/((?!login|_next/static|_next/image|favicon.ico).*)"],
 };

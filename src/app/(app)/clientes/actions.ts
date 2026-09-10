@@ -2,8 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { exigirSessao } from "@/lib/sessao";
 
 export async function criarCliente(formData: FormData) {
+  await exigirSessao();
   const nome = String(formData.get("nome") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim() || null;
   const email = String(formData.get("email") ?? "").trim() || null;
@@ -15,6 +17,7 @@ export async function criarCliente(formData: FormData) {
 }
 
 export async function atualizarCliente(formData: FormData) {
+  await exigirSessao();
   const id = String(formData.get("id"));
   const nome = String(formData.get("nome") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim() || null;
@@ -36,6 +39,7 @@ export async function atualizarObservacoesCliente({
   id: string;
   observacoes: string;
 }) {
+  await exigirSessao();
   if (!id) return;
   const texto = observacoes.trim() || null;
 
@@ -45,6 +49,7 @@ export async function atualizarObservacoesCliente({
 }
 
 export async function excluirCliente(formData: FormData) {
+  await exigirSessao();
   const id = String(formData.get("id"));
   const emUso = await prisma.agendamento.count({ where: { clienteId: id } });
   if (emUso > 0) return;
