@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && npx next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "startCommand": "npx prisma migrate deploy && npx tsx prisma/seed-admin.ts --ensure && npx next start -H 0.0.0.0 -p ${PORT:-3000}",
     "healthcheckPath": "/",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
