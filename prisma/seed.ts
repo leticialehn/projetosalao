@@ -3,6 +3,23 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Proteção: o seed apaga TODOS os dados antes de recriar. Em qualquer
+  // banco que já tenha conteúdo (ex.: produção), exige SEED_FORCE=1.
+  const jaTemDados =
+    (await prisma.agendamento.count()) +
+      (await prisma.cliente.count()) +
+      (await prisma.servico.count()) >
+    0;
+  const force =
+    process.env.SEED_FORCE === "1" || process.argv.includes("--force");
+  if (jaTemDados && !force) {
+    console.error(
+      "Banco já contém dados. O seed foi abortado para não apagá-los.\n" +
+        "Para forçar (apaga tudo): npm run db:seed -- --force",
+    );
+    process.exit(1);
+  }
+
   await prisma.pagamento.deleteMany();
   await prisma.comissaoRegra.deleteMany();
   await prisma.fechamentoCaixa.deleteMany();
