@@ -29,6 +29,7 @@ ficam explicitamente para a fase 2.
 | Date       | Version | Description                          | Author        |
 |------------|---------|--------------------------------------|---------------|
 | 2026-09-09 | 0.1     | Draft inicial a partir do brief      | Morgan (@pm)  |
+| 2026-09-10 | 0.2     | Epic 2 (segurança + refino financeiro), FR15–FR22, NFR10–NFR13 | Morgan (@pm) |
 
 ## Requirements
 
@@ -54,7 +55,7 @@ ficam explicitamente para a fase 2.
 - **NFR1:** Stack mantida: Next.js 15 (App Router) + TypeScript, Prisma + SQLite, server actions, CSS puro (sem Tailwind).
 - **NFR2:** Todas as strings de interface em português do Brasil (pt-BR).
 - **NFR3:** Valores monetários armazenados de forma consistente (Float em reais, 2 casas) e formatados como moeda BRL na interface.
-- **NFR4:** Instância única por salão; sem multiempresa e sem autenticação multiusuário no MVP (acesso local/confiável no balcão).
+- **NFR4:** Instância única por salão; sem multiempresa e sem autenticação multiusuário no MVP (acesso local/confiável no balcão). _[Parcialmente substituída na v0.2 — ver NFR10: o Epic 2 introduz autenticação; a parte "instância única / sem multiempresa" continua válida.]_
 - **NFR5:** Operação otimizada para desktop/tablet no balcão; layout utilizável em tela pequena, mas mobile não é prioridade.
 - **NFR6:** Cálculos financeiros (fechamento, comissão) devem ser determinísticos e cobertos por testes unitários.
 - **NFR7:** Operações de escrita usam server actions com validação de entrada; erros retornam mensagem clara em pt-BR.
@@ -127,7 +128,8 @@ documentados nas stories. E2E fora de escopo no MVP.
 
 ## Epic List
 
-- **Epic 1 — Controle operacional e financeiro do salão:** adicionar caixa, comissões, agenda operacional, ficha de cliente e painel do dia sobre a base de agendamento existente, entregue como MVP completo.
+- **Epic 1 — Controle operacional e financeiro do salão:** adicionar caixa, comissões, agenda operacional, ficha de cliente e painel do dia sobre a base de agendamento existente, entregue como MVP completo. **(Done — 2026-09-10, QA 9 PASS / 1 CONCERNS)**
+- **Epic 2 — Segurança de acesso e refinamento financeiro:** login e papéis (dono/balcão), taxa de maquininha no caixa e comissão por serviço / sobre líquido. Pré-requisito para publicar a URL. **(Draft)**
 
 Epic único por decisão de escopo (2026-09-09): as cinco áreas se sustentam mutuamente
 (caixa depende de valor cobrado, comissão depende de caixa, painel depende de ambos) e o valor
@@ -279,6 +281,163 @@ so that eu conheça o cliente e saiba quando foi a última visita.
 2: A ficha mostra contato, observações (editáveis) e a data da última visita concluída.
 3: O histórico lista agendamentos do cliente (data, serviço, profissional, valor cobrado, status), mais recentes primeiro.
 4: A ficha tem atalho para criar um novo agendamento já com o cliente selecionado.
+
+## Epic 2 — Segurança de acesso e refinamento financeiro
+
+**Status:** Draft (2026-09-10, Morgan @pm). Epic 1 entregue e validado pelo QA (9 PASS, 1 CONCERNS);
+deploy no Railway preparado. Este epic cobre a "fase 2" que o MVP deixou explicitamente de fora.
+
+**Objetivo expandido:** tornar o sistema seguro para operar publicamente (login) e aproximar os
+números do dinheiro real do salão (taxa de maquininha, comissão por serviço). Ao final, o dono pode
+publicar o app sem expor dados e confia que caixa e comissões refletem o líquido, não o bruto.
+
+### Contexto e mudança de premissa
+
+O MVP assumiu **NFR4** (acesso local/confiável no balcão, sem autenticação). Com o deploy numa URL
+pública essa premissa cai: qualquer pessoa com o link acessa clientes, telefones, faturamento e
+comissões. Autenticação passa de "fora de escopo" a **pré-requisito de uso real** — por isso é a
+primeira story do epic e bloqueia a divulgação da URL.
+
+### Requisitos adicionais
+
+#### Functional (fase 2)
+
+- **FR15:** O acesso a todas as rotas do app (exceto a tela de login e, futuramente, o agendamento
+  online público) exige autenticação.
+- **FR16:** O sistema suporta pelo menos dois papéis: **dono** (acesso total, incl. cadastros e
+  relatórios) e **balcão** (agenda, atendimento, caixa do dia; sem editar % de comissão nem excluir
+  cadastros). Um único usuário "dono" é suficiente para começar.
+- **FR17:** A sessão expira por inatividade e há ação explícita de "sair".
+- **FR18:** Cada forma de pagamento pode ter uma **taxa da adquirente** (% e/ou valor fixo por
+  transação) configurável; DINHEIRO e PIX default 0.
+- **FR19:** O fechamento de caixa passa a exibir, além do bruto por forma, o **líquido** (bruto menos
+  taxa) e o total de taxas do dia.
+- **FR20:** A comissão pode ser calculada sobre o **valor líquido** (após taxa da maquininha) ou o
+  bruto — decisão configurável por salão, default bruto (comportamento atual).
+- **FR21:** Além do percentual geral por profissional, é possível definir um percentual de comissão
+  **por serviço** para um profissional; quando existir, ele prevalece sobre o percentual geral.
+- **FR22:** O relatório de comissões detalha, por profissional, a quebra por serviço quando houver
+  regra específica.
+
+#### Non Functional (fase 2)
+
+- **NFR10:** Substitui a parte de autenticação da NFR4 — o app agora exige login; segue instância
+  única por salão (sem multiempresa).
+- **NFR11:** Senhas armazenadas com hash forte (bcrypt/argon2); nunca em texto puro; nenhum segredo
+  no repositório (usar variável de ambiente para a chave de sessão).
+- **NFR12:** Migrações continuam não destrutivas (NFR8); novas colunas de taxa/comissão entram com
+  default que preserva o cálculo atual.
+- **NFR13:** Mudança no cálculo de comissão/caixa exige atualização dos testes unitários de
+  `src/lib/financeiro.ts` (NFR6).
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 2.1 | Login do salão (sessão + rota protegida) | — | **Bloqueador — antes de divulgar a URL** |
+| 2.2 | Papéis dono/balcão e restrições de ação | 2.1 | Alta |
+| 2.3 | Taxa de maquininha por forma de pagamento (config + caixa líquido) | Epic 1 (1.7) | Alta |
+| 2.4 | Comissão por serviço (regra específica prevalece) | Epic 1 (1.3, 1.8) | Média |
+| 2.5 | Comissão sobre líquido vs bruto (toggle) | 2.3, 2.4 | Média |
+| 2.6+ | Agendamento online, lembrete WhatsApp, estoque, metas | — | Epics próprios (fase 3) |
+
+Agendamento online, WhatsApp, estoque e metas **não** entram neste epic: cada um é um módulo com
+escopo e riscos próprios (rota pública, API externa paga, nova entidade, dataviz). Serão epics
+separados após o 2 fechar.
+
+### Story 2.1 — Login do salão
+
+As a dono do salão,
+I want proteger o acesso ao sistema com um login,
+so that os dados do salão não fiquem abertos a quem tiver o link.
+
+#### Acceptance Criteria
+
+1: Existe uma rota `/login` com formulário (usuário + senha) fora da área protegida.
+2: Todas as demais rotas redirecionam para `/login` quando não há sessão válida (middleware ou guarda
+   em layout de servidor).
+3: A credencial inicial do "dono" é definida por variável de ambiente (usuário + hash da senha) ou
+   por um comando de seed que grava um `Usuario` com senha em hash; nunca há senha em texto no repo.
+4: Sessão mantida por cookie assinado/HTTP-only; chave de assinatura vem de variável de ambiente.
+5: Há ação "Sair" visível no layout que encerra a sessão.
+6: Sessão expira após período de inatividade configurável (default 12 h).
+7: Tentativa de login inválida retorna mensagem genérica em pt-BR ("usuário ou senha inválidos"),
+   sem revelar qual campo falhou.
+8: `next build`, `npm run lint`, typecheck e os testes passam; migração (se houver entidade `Usuario`)
+   é não destrutiva.
+
+### Story 2.2 — Papéis dono e balcão
+
+As a dono do salão,
+I want que o operador de balcão não consiga alterar comissões nem apagar cadastros,
+so that mudanças sensíveis fiquem só comigo.
+
+#### Acceptance Criteria
+
+1: `Usuario` tem um campo `papel` ("DONO" | "BALCAO").
+2: Rotas/ações restritas ao dono: definir % de comissão, taxas de maquininha, excluir
+   serviço/profissional/cliente, reabrir caixa de dias anteriores.
+3: O balcão acessa: agenda, criar/concluir/remarcar/cancelar atendimento, caixa do dia corrente,
+   painel, ficha de cliente (leitura + observações).
+4: Ação negada por papel retorna mensagem clara em pt-BR e não executa a operação (checagem no
+   servidor, não só escondendo botão).
+5: O layout esconde os controles que o papel atual não pode usar.
+6: Pelo menos um teste cobre a checagem de autorização no servidor.
+
+### Story 2.3 — Taxa de maquininha por forma de pagamento
+
+As a dono do salão,
+I want registrar a taxa que a maquininha cobra por forma de pagamento,
+so that o caixa mostre quanto de fato entrou na conta.
+
+#### Acceptance Criteria
+
+1: Nova entidade `TaxaPagamento` (forma única, percentual, valorFixo, ativo) ou campos equivalentes;
+   DINHEIRO e PIX default 0.
+2: Tela de configuração (acesso dono) para editar as taxas.
+3: `src/lib/financeiro.ts` ganha função pura que, dado um pagamento (valor, forma) e a taxa vigente,
+   retorna o líquido; coberta por testes (incl. taxa 0, só %, só fixo, ambos).
+4: O fechamento de caixa (`/caixa`) exibe, por forma: bruto, taxa, líquido; e o total de taxas do dia.
+5: `FechamentoCaixa` passa a persistir o total líquido e o total de taxas (colunas novas com default
+   0; migração não destrutiva).
+6: O painel do dia e o relatório de comissões continuam funcionando (sem regressão); a comissão
+   segue sobre o bruto nesta story (o toggle é a Story 2.5).
+
+### Story 2.4 — Comissão por serviço
+
+As a dono do salão,
+I want definir uma comissão diferente para um serviço específico de um profissional,
+so that serviços com custo de produto ou margem diferente sejam remunerados de forma justa.
+
+#### Acceptance Criteria
+
+1: `ComissaoRegra` passa a aceitar escopo por serviço: além da regra geral (serviço nulo), regras
+   com `servicoId` preenchido para o mesmo profissional (migração não destrutiva; a unicidade muda
+   de `profissionalId` para `(profissionalId, servicoId)` com `servicoId` nulo = regra geral).
+2: `src/lib/financeiro.ts`: a resolução do percentual de um atendimento passa a ser "regra do serviço
+   se existir, senão regra geral, senão 0"; função pura coberta por testes.
+3: A tela de edição de profissional lista os serviços e permite definir % por serviço (opcional).
+4: O relatório de comissões (`/comissoes`) detalha a quebra por serviço quando houver regra
+   específica; o total por profissional continua correto.
+5: Sem regra específica, o comportamento é idêntico ao Epic 1 (regressão coberta por teste).
+
+### Story 2.5 — Comissão sobre líquido ou bruto
+
+As a dono do salão,
+I want escolher se a comissão incide sobre o valor bruto ou o líquido (após taxa da maquininha),
+so that eu não pague comissão sobre um dinheiro que a adquirente reteve.
+
+#### Acceptance Criteria
+
+1: Configuração única do salão (`Config` ou similar): `comissaoBase` = "BRUTO" | "LIQUIDO", default
+   "BRUTO".
+2: Quando "LIQUIDO", o cálculo de comissão usa o valor líquido do(s) pagamento(s) do atendimento
+   (rateado proporcionalmente se houver mais de uma forma).
+3: `src/lib/financeiro.ts`: função de comissão por profissional recebe a base e as taxas; coberta por
+   testes nos dois modos.
+4: O relatório de comissões indica qual base está em uso no período exibido.
+5: Trocar a configuração afeta apenas relatórios gerados depois (sem histórico de base — documentar
+   como limitação, igual ao percentual no Epic 1).
 
 ## Next Steps
 
