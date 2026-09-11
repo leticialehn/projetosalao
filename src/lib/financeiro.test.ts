@@ -4,6 +4,8 @@ import {
   somarPagamentos,
   totaisPorForma,
   resumoCaixa,
+  resumoCaixaComTaxas,
+  taxaDePagamento,
   comissao,
   comissaoPorProfissional,
   type PagamentoInput,
@@ -80,6 +82,80 @@ describe("resumoCaixa", () => {
     );
     expect(r.totalGeral).toBe(120);
     expect(r.ticketMedio).toBe(60);
+  });
+});
+
+describe("taxaDePagamento", () => {
+  it("taxa 0 → 0", () => {
+    expect(taxaDePagamento(100, { percentual: 0, valorFixo: 0 })).toBe(0);
+  });
+  it("só percentual", () => {
+    expect(taxaDePagamento(100, { percentual: 3.5, valorFixo: 0 })).toBe(3.5);
+  });
+  it("só valor fixo", () => {
+    expect(taxaDePagamento(100, { percentual: 0, valorFixo: 0.1 })).toBe(0.1);
+  });
+  it("percentual + fixo", () => {
+    expect(taxaDePagamento(100, { percentual: 3.5, valorFixo: 0.1 })).toBe(3.6);
+  });
+  it("fixo maior que o valor → taxa limitada ao valor", () => {
+    expect(taxaDePagamento(5, { percentual: 0, valorFixo: 10 })).toBe(5);
+  });
+});
+
+describe("resumoCaixaComTaxas", () => {
+  const pags: PagamentoInput[] = [
+    { valor: 100, formaPagamento: "DINHEIRO" },
+    { valor: 200, formaPagamento: "PIX" },
+    { valor: 100, formaPagamento: "DEBITO" },
+    { valor: 100, formaPagamento: "CREDITO" },
+  ];
+  const taxas = {
+    DEBITO: { percentual: 1.5, valorFixo: 0 },
+    CREDITO: { percentual: 3.5, valorFixo: 0.1 },
+  };
+
+  it("separa bruto/taxa/líquido por forma", () => {
+    const r = resumoCaixaComTaxas(pags, 4, taxas);
+    expect(r.porForma.DINHEIRO).toEqual({ bruto: 100, taxa: 0, liquido: 100 });
+    expect(r.porForma.PIX).toEqual({ bruto: 200, taxa: 0, liquido: 200 });
+    expect(r.porForma.DEBITO).toEqual({ bruto: 100, taxa: 1.5, liquido: 98.5 });
+    expect(r.porForma.CREDITO).toEqual({ bruto: 100, taxa: 3.6, liquido: 96.4 });
+  });
+
+  it("totais fecham", () => {
+    const r = resumoCaixaComTaxas(pags, 4, taxas);
+    expect(r.totalBruto).toBe(500);
+    expect(r.totalTaxas).toBe(5.1);
+    expect(r.totalLiquido).toBe(494.9);
+  });
+
+  it("totalBruto == resumoCaixa(...).totalGeral (sem regressão)", () => {
+    const r = resumoCaixaComTaxas(pags, 4, taxas);
+    expect(r.totalBruto).toBe(resumoCaixa(pags, 4).totalGeral);
+  });
+
+  it("ticketMedio sobre o bruto", () => {
+    const r = resumoCaixaComTaxas(pags, 4, taxas);
+    expect(r.ticketMedio).toBe(125);
+  });
+
+  it("forma sem taxa cadastrada → taxa 0", () => {
+    const r = resumoCaixaComTaxas(
+      [{ valor: 100, formaPagamento: "CREDITO" }],
+      1,
+      {},
+    );
+    expect(r.porForma.CREDITO.taxa).toBe(0);
+    expect(r.totalLiquido).toBe(100);
+  });
+
+  it("caixa vazio → tudo 0, ticketMedio 0", () => {
+    const r = resumoCaixaComTaxas([], 0, taxas);
+    expect(r.totalBruto).toBe(0);
+    expect(r.totalTaxas).toBe(0);
+    expect(r.totalLiquido).toBe(0);
+    expect(r.ticketMedio).toBe(0);
   });
 });
 

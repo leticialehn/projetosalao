@@ -74,6 +74,71 @@ export function resumoCaixa(
   return { porForma, totalGeral, ticketMedio };
 }
 
+// --- Taxa de maquininha (Story 2.3) ---
+
+export interface ConfigTaxa {
+  percentual: number;
+  valorFixo: number;
+}
+
+export const SEM_TAXA: ConfigTaxa = { percentual: 0, valorFixo: 0 };
+
+/**
+ * Taxa cobrada pela adquirente sobre um pagamento: `valor * % + fixo`,
+ * arredondada para centavos. Nunca maior que o próprio valor (líquido não
+ * fica negativo por configuração errada).
+ */
+export function taxaDePagamento(valor: number, t: ConfigTaxa): number {
+  const bruta = reais((valor * t.percentual) / 100 + t.valorFixo);
+  return Math.min(valor, Math.max(0, bruta));
+}
+
+/**
+ * Como `resumoCaixa`, mas separando bruto / taxa / líquido por forma.
+ * `resumoCaixa` continua existindo intacto (painel e comissão usam ele).
+ * `ticketMedio` segue sobre o bruto.
+ */
+export function resumoCaixaComTaxas(
+  pagamentos: PagamentoInput[],
+  qtdAtendimentos: number,
+  taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>>,
+): {
+  porForma: Record<
+    FormaPagamento,
+    { bruto: number; taxa: number; liquido: number }
+  >;
+  totalBruto: number;
+  totalTaxas: number;
+  totalLiquido: number;
+  ticketMedio: number;
+} {
+  const porForma = {
+    DINHEIRO: { bruto: 0, taxa: 0, liquido: 0 },
+    PIX: { bruto: 0, taxa: 0, liquido: 0 },
+    DEBITO: { bruto: 0, taxa: 0, liquido: 0 },
+    CREDITO: { bruto: 0, taxa: 0, liquido: 0 },
+  } as Record<FormaPagamento, { bruto: number; taxa: number; liquido: number }>;
+
+  for (const p of pagamentos) {
+    const t = taxasPorForma[p.formaPagamento] ?? SEM_TAXA;
+    const taxa = taxaDePagamento(p.valor, t);
+    const alvo = porForma[p.formaPagamento];
+    alvo.bruto = reais(alvo.bruto + p.valor);
+    alvo.taxa = reais(alvo.taxa + taxa);
+    alvo.liquido = reais(alvo.liquido + (p.valor - taxa));
+  }
+
+  const totalBruto = somarPagamentos(pagamentos);
+  const totalTaxas = reais(
+    FORMAS_PAGAMENTO.reduce((s, f) => s + porForma[f].taxa, 0),
+  );
+  const totalLiquido = reais(totalBruto - totalTaxas);
+  const ticketMedio =
+    qtdAtendimentos > 0 ? reais(totalBruto / qtdAtendimentos) : 0;
+
+  return { porForma, totalBruto, totalTaxas, totalLiquido, ticketMedio };
+}
+
 /** Comissão sobre um valor cobrado. Arredonda só o resultado final. */
 export function comissao(valorCobrado: number, percentual: number): number {
   return reais((valorCobrado * percentual) / 100);

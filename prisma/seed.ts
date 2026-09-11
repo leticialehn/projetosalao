@@ -23,10 +23,20 @@ async function main() {
   await prisma.pagamento.deleteMany();
   await prisma.comissaoRegra.deleteMany();
   await prisma.fechamentoCaixa.deleteMany();
+  await prisma.taxaPagamento.deleteMany();
   await prisma.agendamento.deleteMany();
   await prisma.servico.deleteMany();
   await prisma.profissional.deleteMany();
   await prisma.cliente.deleteMany();
+
+  await prisma.taxaPagamento.createMany({
+    data: [
+      { formaPagamento: "DINHEIRO", percentual: 0, valorFixo: 0 },
+      { formaPagamento: "PIX", percentual: 0, valorFixo: 0 },
+      { formaPagamento: "DEBITO", percentual: 1.5, valorFixo: 0 },
+      { formaPagamento: "CREDITO", percentual: 3.5, valorFixo: 0 },
+    ],
+  });
 
   const [corte, escova, coloracao, manicure] = await Promise.all([
     prisma.servico.create({ data: { nome: "Corte feminino", duracaoMin: 45, preco: 80 } }),

@@ -4,7 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { exigirSessao, PAPEL_DONO, ERRO_SEM_PERMISSAO } from "@/lib/sessao";
 import { inicioDoDia, inicioDoDiaSeguinte, parseDataParam } from "@/lib/datas";
-import { resumoCaixa, type PagamentoInput } from "@/lib/financeiro";
+import {
+  resumoCaixaComTaxas,
+  type ConfigTaxa,
+  type FormaPagamento,
+  type PagamentoInput,
+} from "@/lib/financeiro";
 
 export type CaixaResult = { ok: boolean; erro?: string };
 
@@ -36,17 +41,28 @@ export async function fecharCaixa(
     return { ok: false, erro: "O caixa deste dia já está fechado." };
   }
 
-  const [pagamentos, qtdAtendimentos] = await Promise.all([
+  const [pagamentos, qtdAtendimentos, taxasDb] = await Promise.all([
     prisma.pagamento.findMany({ where: { dataHora: { gte: de, lt: ate } } }),
     prisma.agendamento.count({
       where: { status: "CONCLUIDO", inicio: { gte: de, lt: ate } },
     }),
+    prisma.taxaPagamento.findMany(),
   ]);
 
-  const { porForma, totalGeral, ticketMedio } = resumoCaixa(
-    pagamentos as PagamentoInput[],
-    qtdAtendimentos,
-  );
+  const taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>> = {};
+  for (const t of taxasDb) {
+    taxasPorForma[t.formaPagamento as FormaPagamento] = {
+      percentual: t.percentual,
+      valorFixo: t.valorFixo,
+    };
+  }
+
+  const { porForma, totalBruto, totalTaxas, totalLiquido, ticketMedio } =
+    resumoCaixaComTaxas(
+      pagamentos as PagamentoInput[],
+      qtdAtendimentos,
+      taxasPorForma,
+    );
 
   const obs = observacoes?.trim();
 
@@ -55,11 +71,13 @@ export async function fecharCaixa(
       prisma.fechamentoCaixa.create({
         data: {
           data: de,
-          totalDinheiro: porForma.DINHEIRO,
-          totalPix: porForma.PIX,
-          totalDebito: porForma.DEBITO,
-          totalCredito: porForma.CREDITO,
-          totalGeral,
+          totalDinheiro: porForma.DINHEIRO.bruto,
+          totalPix: porForma.PIX.bruto,
+          totalDebito: porForma.DEBITO.bruto,
+          totalCredito: porForma.CREDITO.bruto,
+          totalGeral: totalBruto,
+          totalTaxas,
+          totalLiquido,
           qtdAtendimentos,
           ticketMedio,
           observacoes: obs ? obs : null,

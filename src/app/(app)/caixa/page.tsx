@@ -9,8 +9,9 @@ import {
   toDateParam,
 } from "@/lib/datas";
 import {
-  resumoCaixa,
+  resumoCaixaComTaxas,
   FORMAS_PAGAMENTO,
+  type ConfigTaxa,
   type FormaPagamento,
   type PagamentoInput,
 } from "@/lib/financeiro";
@@ -18,7 +19,6 @@ import FecharCaixa from "./FecharCaixa";
 
 export const dynamic = "force-dynamic";
 
-/** Valor salvo no fechamento correspondente a cada forma de pagamento. */
 const TOTAL_SALVO: Record<
   FormaPagamento,
   "totalDinheiro" | "totalPix" | "totalDebito" | "totalCredito"
@@ -42,7 +42,7 @@ export default async function CaixaPage({
   const ate = inicioDoDiaSeguinte(referencia);
   const dataStr = toDateParam(de);
 
-  const [pagamentos, qtdAtendimentos, fechamento] = await Promise.all([
+  const [pagamentos, qtdAtendimentos, fechamento, taxasDb] = await Promise.all([
     prisma.pagamento.findMany({
       where: { dataHora: { gte: de, lt: ate } },
       include: { agendamento: { include: { cliente: true, servico: true } } },
@@ -52,31 +52,35 @@ export default async function CaixaPage({
       where: { status: "CONCLUIDO", inicio: { gte: de, lt: ate } },
     }),
     prisma.fechamentoCaixa.findUnique({ where: { data: de } }),
+    prisma.taxaPagamento.findMany(),
   ]);
 
-  const { porForma, totalGeral, ticketMedio } = resumoCaixa(
+  const taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>> = {};
+  for (const t of taxasDb) {
+    taxasPorForma[t.formaPagamento as FormaPagamento] = {
+      percentual: t.percentual,
+      valorFixo: t.valorFixo,
+    };
+  }
+
+  const resumo = resumoCaixaComTaxas(
     pagamentos as PagamentoInput[],
     qtdAtendimentos,
+    taxasPorForma,
   );
 
   const fechado = fechamento !== null;
   const naoConferidos = pagamentos.filter((p) => !p.conferido).length;
 
-  // Em dia fechado exibimos os valores persistidos (somente leitura);
-  // em dia aberto, os valores recalculados agora.
-  const exibido = fechamento
-    ? {
-        porForma: {
-          DINHEIRO: fechamento.totalDinheiro,
-          PIX: fechamento.totalPix,
-          DEBITO: fechamento.totalDebito,
-          CREDITO: fechamento.totalCredito,
-        } as Record<FormaPagamento, number>,
-        totalGeral: fechamento.totalGeral,
-        ticketMedio: fechamento.ticketMedio,
-        qtdAtendimentos: fechamento.qtdAtendimentos,
-      }
-    : { porForma, totalGeral, ticketMedio, qtdAtendimentos };
+  // Dia fechado → valores persistidos; dia aberto → recalculados agora.
+  const totalBruto = fechamento?.totalGeral ?? resumo.totalBruto;
+  const totalTaxas = fechamento?.totalTaxas ?? resumo.totalTaxas;
+  const totalLiquido = fechamento?.totalLiquido ?? resumo.totalLiquido;
+  const ticketMedio = fechamento?.ticketMedio ?? resumo.ticketMedio;
+  const qtd = fechamento?.qtdAtendimentos ?? qtdAtendimentos;
+
+  const brutoPorForma = (f: FormaPagamento) =>
+    fechamento ? fechamento[TOTAL_SALVO[f]] : resumo.porForma[f].bruto;
 
   return (
     <>
@@ -102,16 +106,16 @@ export default async function CaixaPage({
 
       <div className="grid cols-4">
         <div className="card">
-          <div className="stat">{brl(exibido.totalGeral)}</div>
-          <div className="stat-label">Total do dia</div>
+          <div className="stat">{brl(totalBruto)}</div>
+          <div className="stat-label">Total do dia (bruto)</div>
         </div>
         <div className="card">
-          <div className="stat">{exibido.qtdAtendimentos}</div>
-          <div className="stat-label">Atendimentos concluídos</div>
+          <div className="stat">{brl(totalLiquido)}</div>
+          <div className="stat-label">Líquido (após taxas)</div>
         </div>
         <div className="card">
-          <div className="stat">{brl(exibido.ticketMedio)}</div>
-          <div className="stat-label">Ticket médio</div>
+          <div className="stat">{brl(ticketMedio)}</div>
+          <div className="stat-label">Ticket médio · {qtd} atend.</div>
         </div>
         <div className="card">
           <div className="stat">
@@ -119,34 +123,51 @@ export default async function CaixaPage({
               {fechado ? "Fechado" : "Aberto"}
             </span>
           </div>
-          <div className="stat-label">Status do caixa</div>
+          <div className="stat-label">
+            {brl(totalTaxas)} em taxas
+          </div>
         </div>
       </div>
 
       <div className="card">
         <div className="section-head">
           <h2 style={{ margin: 0, fontSize: 18 }}>Total por forma</h2>
+          {fechado && (
+            <span className="muted">
+              taxa/líquido por forma: estimados com as taxas atuais
+            </span>
+          )}
         </div>
         <table>
           <thead>
             <tr>
               <th>Forma</th>
-              <th>Total</th>
+              <th>Bruto</th>
+              <th>Taxa</th>
+              <th>Líquido</th>
             </tr>
           </thead>
           <tbody>
             {FORMAS_PAGAMENTO.map((f) => (
               <tr key={f}>
                 <td>{FORMA_PAGAMENTO_LABEL[f]}</td>
-                <td>{brl(exibido.porForma[f])}</td>
+                <td>{brl(brutoPorForma(f))}</td>
+                <td>{brl(resumo.porForma[f].taxa)}</td>
+                <td>{brl(resumo.porForma[f].liquido)}</td>
               </tr>
             ))}
             <tr>
               <td>
-                <strong>Total geral</strong>
+                <strong>Total</strong>
               </td>
               <td>
-                <strong>{brl(exibido.totalGeral)}</strong>
+                <strong>{brl(totalBruto)}</strong>
+              </td>
+              <td>
+                <strong>{brl(totalTaxas)}</strong>
+              </td>
+              <td>
+                <strong>{brl(totalLiquido)}</strong>
               </td>
             </tr>
           </tbody>
@@ -202,17 +223,11 @@ export default async function CaixaPage({
               </span>
             </div>
 
-            <div className="grid cols-4">
-              {FORMAS_PAGAMENTO.map((f) => (
-                <div key={f}>
-                  <div className="stat" style={{ fontSize: 20 }}>
-                    {brl(fechamento[TOTAL_SALVO[f]])}
-                  </div>
-                  <div className="stat-label">{FORMA_PAGAMENTO_LABEL[f]}</div>
-                </div>
-              ))}
-            </div>
-
+            <p style={{ marginBottom: 4 }}>
+              <strong>Bruto:</strong> {brl(fechamento.totalGeral)} ·{" "}
+              <strong>Taxas:</strong> {brl(fechamento.totalTaxas)} ·{" "}
+              <strong>Líquido:</strong> {brl(fechamento.totalLiquido)}
+            </p>
             <p style={{ marginBottom: 4 }}>
               <strong>Observações:</strong>{" "}
               {fechamento.observacoes ? (
@@ -237,8 +252,10 @@ export default async function CaixaPage({
               <h2 style={{ margin: 0, fontSize: 18 }}>Fechar caixa</h2>
             </div>
             <p className="muted" style={{ marginTop: 0 }}>
-              Serão gravados {brl(totalGeral)} em {pagamentos.length}{" "}
-              pagamento(s) e {qtdAtendimentos} atendimento(s) concluído(s).
+              Serão gravados {brl(resumo.totalBruto)} bruto ·{" "}
+              {brl(resumo.totalTaxas)} em taxas · {brl(resumo.totalLiquido)}{" "}
+              líquido, em {pagamentos.length} pagamento(s) e {qtdAtendimentos}{" "}
+              atendimento(s) concluído(s).
             </p>
             <FecharCaixa data={dataStr} fechado={false} />
           </>

@@ -12,6 +12,7 @@ const links = [
   { href: "/clientes", label: "Clientes", dono: false },
   { href: "/profissionais", label: "Profissionais", dono: true },
   { href: "/servicos", label: "Serviços", dono: true },
+  { href: "/taxas", label: "Taxas", dono: true },
   { href: "/usuarios", label: "Usuários", dono: true },
 ];
 

@@ -99,6 +99,17 @@ model FechamentoCaixa {
   totalGeral      Float
   qtdAtendimentos Int
   ticketMedio     Float
+  totalTaxas      Float    @default(0)
+  totalLiquido    Float    @default(0)
   observacoes     String?
   criadoEm        DateTime @default(now())
+}
+
+model TaxaPagamento {
+  id             String   @id @default(cuid())
+  formaPagamento String   @unique // DINHEIRO | PIX | DEBITO | CREDITO
+  percentual     Float    @default(0)
+  valorFixo      Float    @default(0)
+  ativo          Boolean  @default(true)
+  criadoEm       DateTime @default(now())
 }
