@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
 import { exigirPapel, PAPEL_DONO } from "@/lib/sessao";
 import { brl } from "@/lib/format";
@@ -9,11 +10,20 @@ import {
   toDateParam,
 } from "@/lib/datas";
 import {
-  comissaoPorProfissional,
+  comissaoPorProfissionalComServico,
   type AtendimentoInput,
+  type RegraComissao,
 } from "@/lib/financeiro";
 
 export const dynamic = "force-dynamic";
+
+type LinhaServico = {
+  servicoId: string;
+  nome: string;
+  qtd: number;
+  totalCobrado: number;
+  comissao: number;
+};
 
 type Linha = {
   id: string;
@@ -23,6 +33,7 @@ type Linha = {
   totalCobrado: number;
   percentual: number;
   comissao: number;
+  porServico: LinhaServico[];
 };
 
 export default async function ComissoesPage({
@@ -42,7 +53,7 @@ export default async function ComissoesPage({
 
   // `de > ate`: mostra aviso e não busca/calcula atendimentos.
   const atendimentosPromise: Promise<
-    { profissionalId: string; valorCobrado: number | null }[]
+    { profissionalId: string; servicoId: string; valorCobrado: number | null }[]
   > = periodoInvalido
     ? Promise.resolve([])
     : prisma.agendamento.findMany({
@@ -52,34 +63,44 @@ export default async function ComissoesPage({
           // Fim inclusivo: tudo antes da meia-noite do dia seguinte a `ate`.
           inicio: { gte: de, lt: inicioDoDiaSeguinte(ate) },
         },
-        select: { profissionalId: true, valorCobrado: true },
+        select: { profissionalId: true, servicoId: true, valorCobrado: true },
       });
 
   // Inclui inativos: profissional desligado que atendeu no período ainda
   // tem comissão a receber (filtrados abaixo se não atenderam).
-  const [atendimentosDb, profissionais] = await Promise.all([
+  const [atendimentosDb, profissionais, servicos] = await Promise.all([
     atendimentosPromise,
     prisma.profissional.findMany({
-      include: { comissaoRegra: true },
+      include: { comissaoRegras: true },
       orderBy: { nome: "asc" },
     }),
+    prisma.servico.findMany({ select: { id: true, nome: true } }),
   ]);
+
+  const nomeServico = new Map(servicos.map((s) => [s.id, s.nome]));
 
   const atendimentos: AtendimentoInput[] = atendimentosDb.map((a) => ({
     profissionalId: a.profissionalId,
+    servicoId: a.servicoId,
     valorCobrado: a.valorCobrado ?? 0,
   }));
 
   // Fonte canônica do percentual é a ComissaoRegra (não o espelho
   // `Profissional.comissaoPercentual`). Sem regra → 0.
-  const percentualPorProfissional: Record<string, number> = {};
+  const regrasPorProfissional: Record<string, RegraComissao[]> = {};
+  const percentualGeralPorProfissional: Record<string, number> = {};
   for (const p of profissionais) {
-    percentualPorProfissional[p.id] = p.comissaoRegra?.percentual ?? 0;
+    regrasPorProfissional[p.id] = p.comissaoRegras.map((r) => ({
+      servicoId: r.servicoId,
+      percentual: r.percentual,
+    }));
+    percentualGeralPorProfissional[p.id] =
+      p.comissaoRegras.find((r) => r.servicoId === null)?.percentual ?? 0;
   }
 
-  const agregado = comissaoPorProfissional(
+  const agregado = comissaoPorProfissionalComServico(
     atendimentos,
-    percentualPorProfissional,
+    regrasPorProfissional,
   );
 
   // A função pura não inventa profissionais: a linha com zeros para quem
@@ -88,14 +109,29 @@ export default async function ComissoesPage({
     .filter((p) => p.ativo || agregado[p.id] !== undefined)
     .map((p) => {
       const a = agregado[p.id];
+      // Quebra por serviço só aparece quando há regra específica (AC4) —
+      // sem regra por serviço, o relatório fica idêntico ao Epic 1.
+      const temRegraPorServico = p.comissaoRegras.some(
+        (r) => r.servicoId !== null,
+      );
+      const porServico: LinhaServico[] = temRegraPorServico
+        ? Object.entries(a?.porServico ?? {}).map(([servicoId, v]) => ({
+            servicoId,
+            nome: nomeServico.get(servicoId) ?? servicoId,
+            qtd: v.qtd,
+            totalCobrado: v.totalCobrado,
+            comissao: v.comissao,
+          }))
+        : [];
       return {
         id: p.id,
         nome: p.nome,
         ativo: p.ativo,
         qtd: a?.qtd ?? 0,
         totalCobrado: a?.totalCobrado ?? 0,
-        percentual: percentualPorProfissional[p.id] ?? 0,
+        percentual: percentualGeralPorProfissional[p.id] ?? 0,
         comissao: a?.comissao ?? 0,
+        porServico,
       };
     });
 
@@ -174,20 +210,31 @@ export default async function ComissoesPage({
                 </thead>
                 <tbody>
                   {linhas.map((l) => (
-                    <tr key={l.id}>
-                      <td>
-                        {l.nome}
-                        {!l.ativo && (
-                          <span className="badge off" style={{ marginLeft: 8 }}>
-                            inativo
-                          </span>
-                        )}
-                      </td>
-                      <td>{l.qtd}</td>
-                      <td>{brl(l.totalCobrado)}</td>
-                      <td>{l.percentual}%</td>
-                      <td>{brl(l.comissao)}</td>
-                    </tr>
+                    <Fragment key={l.id}>
+                      <tr>
+                        <td>
+                          {l.nome}
+                          {!l.ativo && (
+                            <span className="badge off" style={{ marginLeft: 8 }}>
+                              inativo
+                            </span>
+                          )}
+                        </td>
+                        <td>{l.qtd}</td>
+                        <td>{brl(l.totalCobrado)}</td>
+                        <td>{l.percentual}%</td>
+                        <td>{brl(l.comissao)}</td>
+                      </tr>
+                      {l.porServico.map((s) => (
+                        <tr key={`${l.id}-${s.servicoId}`} className="muted">
+                          <td style={{ paddingLeft: 24 }}>— {s.nome}</td>
+                          <td>{s.qtd}</td>
+                          <td>{brl(s.totalCobrado)}</td>
+                          <td></td>
+                          <td>{brl(s.comissao)}</td>
+                        </tr>
+                      ))}
+                    </Fragment>
                   ))}
                   <tr>
                     <td>

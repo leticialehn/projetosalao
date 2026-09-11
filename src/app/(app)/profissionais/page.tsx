@@ -7,10 +7,17 @@ export const dynamic = "force-dynamic";
 
 export default async function ProfissionaisPage() {
   await exigirPapel(PAPEL_DONO);
-  const profissionais = await prisma.profissional.findMany({
-    orderBy: [{ ativo: "desc" }, { nome: "asc" }],
-    include: { comissaoRegra: { select: { percentual: true } } },
-  });
+  const [profissionais, servicos] = await Promise.all([
+    prisma.profissional.findMany({
+      orderBy: [{ ativo: "desc" }, { nome: "asc" }],
+      include: { comissaoRegras: { select: { servicoId: true, percentual: true } } },
+    }),
+    prisma.servico.findMany({
+      where: { ativo: true },
+      orderBy: { nome: "asc" },
+      select: { id: true, nome: true },
+    }),
+  ]);
 
   return (
     <>
@@ -58,7 +65,7 @@ export default async function ProfissionaisPage() {
             </thead>
             <tbody>
               {profissionais.map((p) => (
-                <ProfissionalRow key={p.id} p={p} />
+                <ProfissionalRow key={p.id} p={p} servicos={servicos} />
               ))}
             </tbody>
           </table>

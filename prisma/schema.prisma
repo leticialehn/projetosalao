@@ -15,6 +15,7 @@ model Servico {
   ativo        Boolean  @default(true)
   criadoEm     DateTime @default(now())
   agendamentos Agendamento[]
+  comissaoRegras ComissaoRegra[]
 }
 
 model Profissional {
@@ -26,7 +27,7 @@ model Profissional {
   comissaoPercentual Float @default(0)
   criadoEm     DateTime @default(now())
   agendamentos Agendamento[]
-  comissaoRegra ComissaoRegra?
+  comissaoRegras ComissaoRegra[]
 }
 
 model Cliente {
@@ -76,9 +77,13 @@ model Pagamento {
 model ComissaoRegra {
   id             String   @id @default(cuid())
   profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
-  profissionalId String   @unique
+  profissionalId String
+  servico        Servico? @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  servicoId      String?  // null = regra geral do profissional; preenchido = regra específica de um serviço
   percentual     Float
   criadoEm       DateTime @default(now())
+
+  @@unique([profissionalId, servicoId])
 }
 
 model Usuario {

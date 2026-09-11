@@ -53,8 +53,11 @@ async function main() {
 
   await prisma.comissaoRegra.createMany({
     data: [
-      { profissionalId: ana.id, percentual: 40 },
-      { profissionalId: bruno.id, percentual: 35 },
+      { profissionalId: ana.id, servicoId: null, percentual: 40 },
+      { profissionalId: bruno.id, servicoId: null, percentual: 35 },
+      // Regra específica (Story 2.4): Bruno ganha mais em Coloração que a
+      // sua comissão geral — prevalece sobre os 35% acima só nesse serviço.
+      { profissionalId: bruno.id, servicoId: coloracao.id, percentual: 50 },
     ],
   });
 
