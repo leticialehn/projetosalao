@@ -3,13 +3,40 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Proteção: o seed apaga TODOS os dados antes de recriar. Em qualquer
+  // banco que já tenha conteúdo (ex.: produção), exige SEED_FORCE=1.
+  const jaTemDados =
+    (await prisma.agendamento.count()) +
+      (await prisma.cliente.count()) +
+      (await prisma.servico.count()) >
+    0;
+  const force =
+    process.env.SEED_FORCE === "1" || process.argv.includes("--force");
+  if (jaTemDados && !force) {
+    console.error(
+      "Banco já contém dados. O seed foi abortado para não apagá-los.\n" +
+        "Para forçar (apaga tudo): npm run db:seed -- --force",
+    );
+    process.exit(1);
+  }
+
   await prisma.pagamento.deleteMany();
   await prisma.comissaoRegra.deleteMany();
   await prisma.fechamentoCaixa.deleteMany();
+  await prisma.taxaPagamento.deleteMany();
   await prisma.agendamento.deleteMany();
   await prisma.servico.deleteMany();
   await prisma.profissional.deleteMany();
   await prisma.cliente.deleteMany();
+
+  await prisma.taxaPagamento.createMany({
+    data: [
+      { formaPagamento: "DINHEIRO", percentual: 0, valorFixo: 0 },
+      { formaPagamento: "PIX", percentual: 0, valorFixo: 0 },
+      { formaPagamento: "DEBITO", percentual: 1.5, valorFixo: 0 },
+      { formaPagamento: "CREDITO", percentual: 3.5, valorFixo: 0 },
+    ],
+  });
 
   const [corte, escova, coloracao, manicure] = await Promise.all([
     prisma.servico.create({ data: { nome: "Corte feminino", duracaoMin: 45, preco: 80 } }),
@@ -26,8 +53,11 @@ async function main() {
 
   await prisma.comissaoRegra.createMany({
     data: [
-      { profissionalId: ana.id, percentual: 40 },
-      { profissionalId: bruno.id, percentual: 35 },
+      { profissionalId: ana.id, servicoId: null, percentual: 40 },
+      { profissionalId: bruno.id, servicoId: null, percentual: 35 },
+      // Regra específica (Story 2.4): Bruno ganha mais em Coloração que a
+      // sua comissão geral — prevalece sobre os 35% acima só nesse serviço.
+      { profissionalId: bruno.id, servicoId: coloracao.id, percentual: 50 },
     ],
   });
 

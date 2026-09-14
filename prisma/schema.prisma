@@ -15,6 +15,7 @@ model Servico {
   ativo        Boolean  @default(true)
   criadoEm     DateTime @default(now())
   agendamentos Agendamento[]
+  comissaoRegras ComissaoRegra[]
 }
 
 model Profissional {
@@ -26,7 +27,7 @@ model Profissional {
   comissaoPercentual Float @default(0)
   criadoEm     DateTime @default(now())
   agendamentos Agendamento[]
-  comissaoRegra ComissaoRegra?
+  comissaoRegras ComissaoRegra[]
 }
 
 model Cliente {
@@ -76,9 +77,21 @@ model Pagamento {
 model ComissaoRegra {
   id             String   @id @default(cuid())
   profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
-  profissionalId String   @unique
+  profissionalId String
+  servico        Servico? @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  servicoId      String?  // null = regra geral do profissional; preenchido = regra específica de um serviço
   percentual     Float
   criadoEm       DateTime @default(now())
+
+  @@unique([profissionalId, servicoId])
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  usuario   String   @unique
+  senhaHash String
+  papel     String   @default("DONO") // DONO | BALCAO (papel é usado a partir da Story 2.2)
+  criadoEm  DateTime @default(now())
 }
 
 model FechamentoCaixa {
@@ -91,6 +104,17 @@ model FechamentoCaixa {
   totalGeral      Float
   qtdAtendimentos Int
   ticketMedio     Float
+  totalTaxas      Float    @default(0)
+  totalLiquido    Float    @default(0)
   observacoes     String?
   criadoEm        DateTime @default(now())
+}
+
+model TaxaPagamento {
+  id             String   @id @default(cuid())
+  formaPagamento String   @unique // DINHEIRO | PIX | DEBITO | CREDITO
+  percentual     Float    @default(0)
+  valorFixo      Float    @default(0)
+  ativo          Boolean  @default(true)
+  criadoEm       DateTime @default(now())
 }

@@ -29,6 +29,7 @@ export interface PagamentoInput {
 export interface AtendimentoInput {
   valorCobrado: number;
   profissionalId: string;
+  servicoId: string;
 }
 
 /**
@@ -74,34 +75,144 @@ export function resumoCaixa(
   return { porForma, totalGeral, ticketMedio };
 }
 
+// --- Taxa de maquininha (Story 2.3) ---
+
+export interface ConfigTaxa {
+  percentual: number;
+  valorFixo: number;
+}
+
+export const SEM_TAXA: ConfigTaxa = { percentual: 0, valorFixo: 0 };
+
+/**
+ * Taxa cobrada pela adquirente sobre um pagamento: `valor * % + fixo`,
+ * arredondada para centavos. Nunca maior que o próprio valor (líquido não
+ * fica negativo por configuração errada).
+ */
+export function taxaDePagamento(valor: number, t: ConfigTaxa): number {
+  const bruta = reais((valor * t.percentual) / 100 + t.valorFixo);
+  return Math.min(valor, Math.max(0, bruta));
+}
+
+/**
+ * Como `resumoCaixa`, mas separando bruto / taxa / líquido por forma.
+ * `resumoCaixa` continua existindo intacto (painel e comissão usam ele).
+ * `ticketMedio` segue sobre o bruto.
+ */
+export function resumoCaixaComTaxas(
+  pagamentos: PagamentoInput[],
+  qtdAtendimentos: number,
+  taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>>,
+): {
+  porForma: Record<
+    FormaPagamento,
+    { bruto: number; taxa: number; liquido: number }
+  >;
+  totalBruto: number;
+  totalTaxas: number;
+  totalLiquido: number;
+  ticketMedio: number;
+} {
+  const porForma = {
+    DINHEIRO: { bruto: 0, taxa: 0, liquido: 0 },
+    PIX: { bruto: 0, taxa: 0, liquido: 0 },
+    DEBITO: { bruto: 0, taxa: 0, liquido: 0 },
+    CREDITO: { bruto: 0, taxa: 0, liquido: 0 },
+  } as Record<FormaPagamento, { bruto: number; taxa: number; liquido: number }>;
+
+  for (const p of pagamentos) {
+    const t = taxasPorForma[p.formaPagamento] ?? SEM_TAXA;
+    const taxa = taxaDePagamento(p.valor, t);
+    const alvo = porForma[p.formaPagamento];
+    alvo.bruto = reais(alvo.bruto + p.valor);
+    alvo.taxa = reais(alvo.taxa + taxa);
+    alvo.liquido = reais(alvo.liquido + (p.valor - taxa));
+  }
+
+  const totalBruto = somarPagamentos(pagamentos);
+  const totalTaxas = reais(
+    FORMAS_PAGAMENTO.reduce((s, f) => s + porForma[f].taxa, 0),
+  );
+  const totalLiquido = reais(totalBruto - totalTaxas);
+  const ticketMedio =
+    qtdAtendimentos > 0 ? reais(totalBruto / qtdAtendimentos) : 0;
+
+  return { porForma, totalBruto, totalTaxas, totalLiquido, ticketMedio };
+}
+
 /** Comissão sobre um valor cobrado. Arredonda só o resultado final. */
 export function comissao(valorCobrado: number, percentual: number): number {
   return reais((valorCobrado * percentual) / 100);
 }
 
-export function comissaoPorProfissional(
+/** Uma regra de comissão: `servicoId` nulo = regra geral do profissional. */
+export interface RegraComissao {
+  servicoId: string | null;
+  percentual: number;
+}
+
+/**
+ * Resolve o percentual de comissão de um atendimento: regra do serviço se
+ * existir, senão a regra geral (`servicoId` nulo), senão 0.
+ */
+export function percentualComissao(
+  regras: RegraComissao[],
+  servicoId: string,
+): number {
+  const doServico = regras.find((r) => r.servicoId === servicoId);
+  if (doServico) return doServico.percentual;
+
+  const geral = regras.find((r) => r.servicoId === null);
+  return geral?.percentual ?? 0;
+}
+
+type AgregadoComissao = { qtd: number; totalCobrado: number; comissao: number };
+
+/**
+ * Agrega comissão por profissional (e, dentro de cada profissional, por
+ * serviço) resolvendo o percentual de cada atendimento com `percentualComissao`.
+ * `porServico` só existe para combinações efetivamente atendidas — a página
+ * de relatório decide exibir a quebra só quando o profissional tiver alguma
+ * regra específica por serviço.
+ */
+export function comissaoPorProfissionalComServico(
   atendimentos: AtendimentoInput[],
-  percentualPorProfissional: Record<string, number>,
-): Record<string, { qtd: number; totalCobrado: number; comissao: number }> {
+  regrasPorProfissional: Record<string, RegraComissao[]>,
+): Record<
+  string,
+  AgregadoComissao & { porServico: Record<string, AgregadoComissao> }
+> {
   const acc: Record<
     string,
-    { qtd: number; totalCobrado: number; comissao: number }
+    AgregadoComissao & { porServico: Record<string, AgregadoComissao> }
   > = {};
 
   for (const a of atendimentos) {
-    const atual = acc[a.profissionalId] ?? {
+    const regras = regrasPorProfissional[a.profissionalId] ?? [];
+    const pct = percentualComissao(regras, a.servicoId);
+    const com = comissao(a.valorCobrado, pct);
+
+    const prof = acc[a.profissionalId] ?? {
+      qtd: 0,
+      totalCobrado: 0,
+      comissao: 0,
+      porServico: {},
+    };
+    prof.qtd += 1;
+    prof.totalCobrado = reais(prof.totalCobrado + a.valorCobrado);
+    prof.comissao = reais(prof.comissao + com);
+
+    const servico = prof.porServico[a.servicoId] ?? {
       qtd: 0,
       totalCobrado: 0,
       comissao: 0,
     };
-    atual.qtd += 1;
-    atual.totalCobrado = reais(atual.totalCobrado + a.valorCobrado);
-    acc[a.profissionalId] = atual;
-  }
+    servico.qtd += 1;
+    servico.totalCobrado = reais(servico.totalCobrado + a.valorCobrado);
+    servico.comissao = reais(servico.comissao + com);
+    prof.porServico[a.servicoId] = servico;
 
-  for (const id of Object.keys(acc)) {
-    const pct = percentualPorProfissional[id] ?? 0;
-    acc[id].comissao = comissao(acc[id].totalCobrado, pct);
+    acc[a.profissionalId] = prof;
   }
 
   return acc;
