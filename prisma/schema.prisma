@@ -118,3 +118,10 @@ model TaxaPagamento {
   ativo          Boolean  @default(true)
   criadoEm       DateTime @default(now())
 }
+
+// Singleton (id fixo "singleton") — configuração única do salão.
+model Config {
+  id           String   @id @default("singleton")
+  comissaoBase String   @default("BRUTO") // BRUTO | LIQUIDO
+  atualizadoEm DateTime @updatedAt
+}
