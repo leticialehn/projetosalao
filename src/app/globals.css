@@ -11,12 +11,12 @@
   --ok: #556641;
   --shadow: 0 1px 2px rgba(51, 25, 28, 0.06), 0 6px 18px rgba(51, 25, 28, 0.08);
 
-  /* Sidebar (Story 4.2 — redesign v2, substitui a sidebar clara da 4.1) */
-  --sidebar-bg: #22392f;
-  --sidebar-text: #aab5a5;
+  /* Sidebar (Story 4.2 — ajuste pós-revisão: vinho, mesma cor-âncora do conteúdo) */
+  --sidebar-bg: #722f37;
+  --sidebar-text: #d9c9c5;
   --sidebar-brand: #d9b978;
   --sidebar-active-bg: #f3ead9;
-  --sidebar-active-text: #22392f;
+  --sidebar-active-text: #591f26;
 
   /* Paleta cíclica das colunas de profissional na Agenda */
   --col-1: #5f7358;
