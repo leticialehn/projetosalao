@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { IconCalendar, IconUser, IconChevronDown } from "@/components/icons";
 
 export default function AgendaControles({
   data,
@@ -31,53 +32,54 @@ export default function AgendaControles({
   const passo = modo === "semana" ? 7 : 1;
 
   return (
-    <div className="card">
-      <div className="form-row" style={{ gridTemplateColumns: "auto auto 1fr auto" }}>
-        <div className="row-actions">
-          <button className="ghost" onClick={() => deslocar(-passo)}>
-            ‹
-          </button>
-          <button
-            className="ghost"
-            onClick={() => set({ data: new Date().toISOString().slice(0, 10) })}
-          >
-            Hoje
-          </button>
-          <button className="ghost" onClick={() => deslocar(passo)}>
-            ›
-          </button>
-        </div>
-        <div className="row-actions">
-          <button
-            className={modo === "dia" ? "" : "ghost"}
-            onClick={() => set({ modo: "dia" })}
-          >
-            Dia
-          </button>
-          <button
-            className={modo === "semana" ? "" : "ghost"}
-            onClick={() => set({ modo: "semana" })}
-          >
-            Semana
-          </button>
-        </div>
-        <div className="field" style={{ margin: 0 }}>
-          <input
-            type="date"
-            value={data}
-            onChange={(e) => set({ data: e.target.value })}
-          />
-        </div>
-        <div className="field" style={{ margin: 0 }}>
-          <select value={prof} onChange={(e) => set({ prof: e.target.value })}>
-            <option value="todos">Todos os profissionais</option>
-            {profissionais.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="card toolbar">
+      <div className="pill-group">
+        <button className="ghost" onClick={() => deslocar(-passo)} aria-label="Anterior">
+          ‹
+        </button>
+        <button
+          className="ghost"
+          onClick={() => set({ data: new Date().toISOString().slice(0, 10) })}
+        >
+          Hoje
+        </button>
+        <button className="ghost" onClick={() => deslocar(passo)} aria-label="Próximo">
+          ›
+        </button>
+      </div>
+      <div className="pill-group">
+        <button
+          className={modo === "dia" ? "" : "ghost"}
+          onClick={() => set({ modo: "dia" })}
+        >
+          Dia
+        </button>
+        <button
+          className={modo === "semana" ? "" : "ghost"}
+          onClick={() => set({ modo: "semana" })}
+        >
+          Semana
+        </button>
+      </div>
+      <div className="pill-field">
+        <IconCalendar size={16} className="leading" />
+        <input
+          type="date"
+          value={data}
+          onChange={(e) => set({ data: e.target.value })}
+        />
+      </div>
+      <div className="pill-field">
+        <IconUser size={16} className="leading" />
+        <select value={prof} onChange={(e) => set({ prof: e.target.value })}>
+          <option value="todos">Todas as profissionais</option>
+          {profissionais.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome}
+            </option>
+          ))}
+        </select>
+        <IconChevronDown size={14} className="trailing" />
       </div>
     </div>
   );

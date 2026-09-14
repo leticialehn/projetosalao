@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import Sair from "@/components/Sair";
+import { IconLeaf } from "@/components/icons";
 import { exigirSessao } from "@/lib/sessao";
 
 // Guarda de autenticação para o render das páginas de (app). As server actions
@@ -15,7 +16,10 @@ export default async function AppLayout({
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="brand">Seu Salão</div>
+        <div className="brand">
+          <IconLeaf />
+          Seu Salão
+        </div>
         <Nav papel={sessao.papel} />
         <Sair usuario={sessao.usuario} papel={sessao.papel} />
       </aside>

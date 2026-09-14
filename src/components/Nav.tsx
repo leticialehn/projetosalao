@@ -2,19 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  IconCalendar,
+  IconHome,
+  IconWallet,
+  IconPercent,
+  IconCalendarCheck,
+  IconUsers,
+  IconPackage,
+  IconUser,
+  IconTag,
+  IconReceipt,
+  IconSettings,
+} from "./icons";
 
 const links = [
-  { href: "/", label: "Agenda", dono: false },
-  { href: "/painel", label: "Painel do dia", dono: false },
-  { href: "/caixa", label: "Caixa", dono: false },
-  { href: "/comissoes", label: "Comissões", dono: true },
-  { href: "/agendamentos", label: "Agendamentos", dono: false },
-  { href: "/clientes", label: "Clientes", dono: false },
-  { href: "/produtos", label: "Produtos", dono: false },
-  { href: "/profissionais", label: "Profissionais", dono: true },
-  { href: "/servicos", label: "Serviços", dono: true },
-  { href: "/taxas", label: "Taxas", dono: true },
-  { href: "/usuarios", label: "Usuários", dono: true },
+  { href: "/", label: "Agenda", dono: false, Icon: IconCalendar },
+  { href: "/painel", label: "Painel do dia", dono: false, Icon: IconHome },
+  { href: "/caixa", label: "Caixa", dono: false, Icon: IconWallet },
+  { href: "/comissoes", label: "Comissões", dono: true, Icon: IconPercent },
+  { href: "/agendamentos", label: "Agendamentos", dono: false, Icon: IconCalendarCheck },
+  { href: "/clientes", label: "Clientes", dono: false, Icon: IconUsers },
+  { href: "/produtos", label: "Produtos", dono: false, Icon: IconPackage },
+  { href: "/profissionais", label: "Profissionais", dono: true, Icon: IconUser },
+  { href: "/servicos", label: "Serviços", dono: true, Icon: IconTag },
+  { href: "/taxas", label: "Taxas", dono: true, Icon: IconReceipt },
+  { href: "/usuarios", label: "Usuários", dono: true, Icon: IconSettings },
 ];
 
 export default function Nav({ papel }: { papel: string }) {
@@ -29,6 +42,7 @@ export default function Nav({ papel }: { papel: string }) {
             l.href === "/" ? path === "/" : path.startsWith(l.href);
           return (
             <Link key={l.href} href={l.href} className={active ? "active" : ""}>
+              <l.Icon />
               {l.label}
             </Link>
           );

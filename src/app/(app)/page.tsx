@@ -68,12 +68,13 @@ export default async function AgendaPage({
 
       {modo === "dia" ? (
         <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(profsVisiveis.length || 1, 3)}, 1fr)` }}>
-          {profsVisiveis.map((p) => (
+          {profsVisiveis.map((p, indice) => (
             <ColunaDia
               key={p.id}
               dia={ref}
               profId={p.id}
               profNome={p.nome}
+              indice={indice}
               agendamentos={agendamentos.filter(
                 (a) => a.profissionalId === p.id,
               )}
@@ -147,16 +148,20 @@ type AgItem = {
   servico: { nome: string; preco: number };
 };
 
+const PALETA_COLUNAS = ["var(--col-1)", "var(--col-2)", "var(--col-3)"];
+
 function ColunaDia({
   dia,
   profId,
   profNome,
+  indice,
   agendamentos,
   profissionais,
 }: {
   dia: Date;
   profId: string;
   profNome: string;
+  indice: number;
   agendamentos: AgItem[];
   profissionais: { id: string; nome: string }[];
 }) {
@@ -167,10 +172,14 @@ function ColunaDia({
     d.setMinutes(m);
     slots.push(d);
   }
+  const cor = PALETA_COLUNAS[indice % PALETA_COLUNAS.length];
 
   return (
     <div className="agenda-dia">
-      <h3 className="prof-nome">{profNome}</h3>
+      <div className="col-header" style={{ background: cor }}>
+        <span className="avatar on-color">{profNome[0]?.toUpperCase()}</span>
+        <h3 className="prof-nome-header">{profNome}</h3>
+      </div>
       {slots.map((s) => {
         const fimSlot = new Date(s.getTime() + PASSO_MIN * 60000);
         const ocupa = agendamentos.find(
