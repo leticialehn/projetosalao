@@ -125,3 +125,16 @@ model Config {
   comissaoBase String   @default("BRUTO") // BRUTO | LIQUIDO
   atualizadoEm DateTime @updatedAt
 }
+
+model Produto {
+  id            String   @id @default(cuid())
+  nome          String
+  categoria     String?
+  unidade       String?
+  estoqueMinimo Float    @default(0)
+  // Nasce em 0 e só muda via movimentação de estoque (Story 3.2). Nenhuma
+  // action da Story 3.1 escreve neste campo diretamente.
+  estoqueAtual  Float    @default(0)
+  ativo         Boolean  @default(true)
+  criadoEm      DateTime @default(now())
+}
