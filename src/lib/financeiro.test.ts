@@ -9,6 +9,7 @@ import {
   comissao,
   percentualComissao,
   comissaoPorProfissionalComServico,
+  valorBaseComissao,
   type PagamentoInput,
   type RegraComissao,
 } from "./financeiro";
@@ -158,6 +159,69 @@ describe("resumoCaixaComTaxas", () => {
     expect(r.totalTaxas).toBe(0);
     expect(r.totalLiquido).toBe(0);
     expect(r.ticketMedio).toBe(0);
+  });
+});
+
+describe("valorBaseComissao", () => {
+  const taxas = {
+    DEBITO: { percentual: 1.5, valorFixo: 0 },
+    CREDITO: { percentual: 3.5, valorFixo: 0.1 },
+  };
+
+  it("BRUTO ignora taxas e pagamentos", () => {
+    const v = valorBaseComissao(
+      {
+        valorCobrado: 100,
+        pagamentos: [{ valor: 100, formaPagamento: "CREDITO" }],
+      },
+      "BRUTO",
+      taxas,
+    );
+    expect(v).toBe(100);
+  });
+
+  it("LIQUIDO com 1 pagamento: subtrai a taxa da forma", () => {
+    const v = valorBaseComissao(
+      {
+        valorCobrado: 100,
+        pagamentos: [{ valor: 100, formaPagamento: "CREDITO" }],
+      },
+      "LIQUIDO",
+      taxas,
+    );
+    expect(v).toBe(96.4); // 100 - (3.5 + 0.1)
+  });
+
+  it("LIQUIDO com pagamento dividido em 2 formas: soma os líquidos", () => {
+    const v = valorBaseComissao(
+      {
+        valorCobrado: 100,
+        pagamentos: [
+          { valor: 50, formaPagamento: "DINHEIRO" },
+          { valor: 50, formaPagamento: "DEBITO" },
+        ],
+      },
+      "LIQUIDO",
+      taxas,
+    );
+    expect(v).toBe(99.25); // 50 + (50 - 0.75)
+  });
+
+  it("LIQUIDO sem pagamentos → cai no bruto", () => {
+    const v = valorBaseComissao({ valorCobrado: 100 }, "LIQUIDO", taxas);
+    expect(v).toBe(100);
+  });
+
+  it("LIQUIDO com forma sem taxa cadastrada → líquido = bruto pra aquela linha", () => {
+    const v = valorBaseComissao(
+      {
+        valorCobrado: 100,
+        pagamentos: [{ valor: 100, formaPagamento: "PIX" }],
+      },
+      "LIQUIDO",
+      {},
+    );
+    expect(v).toBe(100);
   });
 });
 
@@ -329,5 +393,64 @@ describe("comissaoPorProfissionalComServico", () => {
     );
     const total = Object.values(r).reduce((acc, x) => acc + x.comissao, 0);
     expect(total).toBe(102); // 32 + 70 + 0
+  });
+
+  // Story 2.5: base BRUTO/LIQUIDO.
+  it("base omitida (default) → idêntico a passar 'BRUTO' explicitamente (regressão 2.4)", () => {
+    const atendimentos = [
+      { valorCobrado: 80, profissionalId: "a", servicoId: "corte" },
+      { valorCobrado: 200, profissionalId: "b", servicoId: "corte" },
+    ];
+    const regras = {
+      a: [{ servicoId: null, percentual: 40 }],
+      b: [{ servicoId: null, percentual: 35 }],
+    };
+    const semBase = comissaoPorProfissionalComServico(atendimentos, regras);
+    const comBrutoExplicito = comissaoPorProfissionalComServico(
+      atendimentos,
+      regras,
+      "BRUTO",
+    );
+    expect(semBase).toEqual(comBrutoExplicito);
+  });
+
+  it("base LIQUIDO: comissão sobre o líquido, mas totalCobrado continua o bruto", () => {
+    const taxas = { CREDITO: { percentual: 3.5, valorFixo: 0.1 } };
+    const r = comissaoPorProfissionalComServico(
+      [
+        {
+          valorCobrado: 100,
+          profissionalId: "ana",
+          servicoId: "corte",
+          pagamentos: [{ valor: 100, formaPagamento: "CREDITO" }],
+        },
+      ],
+      { ana: [{ servicoId: null, percentual: 40 }] },
+      "LIQUIDO",
+      taxas,
+    );
+    expect(r.ana.totalCobrado).toBe(100); // bruto, independente da base da comissão
+    expect(r.ana.comissao).toBe(38.56); // 96.4 * 40%
+  });
+
+  it("base LIQUIDO com pagamento dividido em 2 formas", () => {
+    const taxas = { DEBITO: { percentual: 1.5, valorFixo: 0 } };
+    const r = comissaoPorProfissionalComServico(
+      [
+        {
+          valorCobrado: 100,
+          profissionalId: "ana",
+          servicoId: "corte",
+          pagamentos: [
+            { valor: 50, formaPagamento: "DINHEIRO" },
+            { valor: 50, formaPagamento: "DEBITO" },
+          ],
+        },
+      ],
+      { ana: [{ servicoId: null, percentual: 40 }] },
+      "LIQUIDO",
+      taxas,
+    );
+    expect(r.ana.comissao).toBe(39.7); // (50 + 49.25) * 40% = 39.7
   });
 });

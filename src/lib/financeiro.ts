@@ -30,6 +30,7 @@ export interface AtendimentoInput {
   valorCobrado: number;
   profissionalId: string;
   servicoId: string;
+  pagamentos?: PagamentoInput[];
 }
 
 /**
@@ -140,6 +141,33 @@ export function resumoCaixaComTaxas(
   return { porForma, totalBruto, totalTaxas, totalLiquido, ticketMedio };
 }
 
+// --- Base da comissão: bruto ou líquido (Story 2.5) ---
+
+export type ComissaoBase = "BRUTO" | "LIQUIDO";
+
+/**
+ * Valor-base sobre o qual a comissão de um atendimento incide. Em `BRUTO`
+ * (ou sem `pagamentos` — legado/edge case), é sempre `valorCobrado`. Em
+ * `LIQUIDO`, soma o líquido (`valor - taxaDePagamento`) de cada `Pagamento`
+ * — cobre pagamento dividido entre formas, já que cada linha carrega sua
+ * própria taxa.
+ */
+export function valorBaseComissao(
+  atendimento: { valorCobrado: number; pagamentos?: PagamentoInput[] },
+  base: ComissaoBase,
+  taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>>,
+): number {
+  if (base === "BRUTO" || !atendimento.pagamentos) {
+    return atendimento.valorCobrado;
+  }
+  return reais(
+    atendimento.pagamentos.reduce((acc, p) => {
+      const t = taxasPorForma[p.formaPagamento] ?? SEM_TAXA;
+      return acc + (p.valor - taxaDePagamento(p.valor, t));
+    }, 0),
+  );
+}
+
 /** Comissão sobre um valor cobrado. Arredonda só o resultado final. */
 export function comissao(valorCobrado: number, percentual: number): number {
   return reais((valorCobrado * percentual) / 100);
@@ -178,6 +206,8 @@ type AgregadoComissao = { qtd: number; totalCobrado: number; comissao: number };
 export function comissaoPorProfissionalComServico(
   atendimentos: AtendimentoInput[],
   regrasPorProfissional: Record<string, RegraComissao[]>,
+  base: ComissaoBase = "BRUTO",
+  taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>> = {},
 ): Record<
   string,
   AgregadoComissao & { porServico: Record<string, AgregadoComissao> }
@@ -190,7 +220,8 @@ export function comissaoPorProfissionalComServico(
   for (const a of atendimentos) {
     const regras = regrasPorProfissional[a.profissionalId] ?? [];
     const pct = percentualComissao(regras, a.servicoId);
-    const com = comissao(a.valorCobrado, pct);
+    const baseValor = valorBaseComissao(a, base, taxasPorForma);
+    const com = comissao(baseValor, pct);
 
     const prof = acc[a.profissionalId] ?? {
       qtd: 0,
