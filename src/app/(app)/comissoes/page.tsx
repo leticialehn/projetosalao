@@ -12,6 +12,9 @@ import {
 import {
   comissaoPorProfissionalComServico,
   type AtendimentoInput,
+  type ComissaoBase,
+  type ConfigTaxa,
+  type FormaPagamento,
   type RegraComissao,
 } from "@/lib/financeiro";
 
@@ -53,7 +56,12 @@ export default async function ComissoesPage({
 
   // `de > ate`: mostra aviso e não busca/calcula atendimentos.
   const atendimentosPromise: Promise<
-    { profissionalId: string; servicoId: string; valorCobrado: number | null }[]
+    {
+      profissionalId: string;
+      servicoId: string;
+      valorCobrado: number | null;
+      pagamentos: { valor: number; formaPagamento: string }[];
+    }[]
   > = periodoInvalido
     ? Promise.resolve([])
     : prisma.agendamento.findMany({
@@ -63,26 +71,48 @@ export default async function ComissoesPage({
           // Fim inclusivo: tudo antes da meia-noite do dia seguinte a `ate`.
           inicio: { gte: de, lt: inicioDoDiaSeguinte(ate) },
         },
-        select: { profissionalId: true, servicoId: true, valorCobrado: true },
+        select: {
+          profissionalId: true,
+          servicoId: true,
+          valorCobrado: true,
+          pagamentos: { select: { valor: true, formaPagamento: true } },
+        },
       });
 
   // Inclui inativos: profissional desligado que atendeu no período ainda
   // tem comissão a receber (filtrados abaixo se não atenderam).
-  const [atendimentosDb, profissionais, servicos] = await Promise.all([
-    atendimentosPromise,
-    prisma.profissional.findMany({
-      include: { comissaoRegras: true },
-      orderBy: { nome: "asc" },
-    }),
-    prisma.servico.findMany({ select: { id: true, nome: true } }),
-  ]);
+  const [atendimentosDb, profissionais, servicos, config, taxasDb] =
+    await Promise.all([
+      atendimentosPromise,
+      prisma.profissional.findMany({
+        include: { comissaoRegras: true },
+        orderBy: { nome: "asc" },
+      }),
+      prisma.servico.findMany({ select: { id: true, nome: true } }),
+      prisma.config.findUnique({ where: { id: "singleton" } }),
+      prisma.taxaPagamento.findMany(),
+    ]);
 
   const nomeServico = new Map(servicos.map((s) => [s.id, s.nome]));
+
+  const base: ComissaoBase =
+    config?.comissaoBase === "LIQUIDO" ? "LIQUIDO" : "BRUTO";
+  const taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>> = {};
+  for (const t of taxasDb) {
+    taxasPorForma[t.formaPagamento as FormaPagamento] = {
+      percentual: t.percentual,
+      valorFixo: t.valorFixo,
+    };
+  }
 
   const atendimentos: AtendimentoInput[] = atendimentosDb.map((a) => ({
     profissionalId: a.profissionalId,
     servicoId: a.servicoId,
     valorCobrado: a.valorCobrado ?? 0,
+    pagamentos: a.pagamentos.map((p) => ({
+      valor: p.valor,
+      formaPagamento: p.formaPagamento as FormaPagamento,
+    })),
   }));
 
   // Fonte canônica do percentual é a ComissaoRegra (não o espelho
@@ -101,6 +131,8 @@ export default async function ComissoesPage({
   const agregado = comissaoPorProfissionalComServico(
     atendimentos,
     regrasPorProfissional,
+    base,
+    taxasPorForma,
   );
 
   // A função pura não inventa profissionais: a linha com zeros para quem
@@ -143,6 +175,9 @@ export default async function ComissoesPage({
     <>
       <h1>Comissões</h1>
       <p className="subtitle">Comissão devida por profissional no período</p>
+      <p className="subtitle">
+        Comissão calculada sobre: {base === "LIQUIDO" ? "Líquido" : "Bruto"}
+      </p>
 
       <div className="card">
         <form method="get" className="form-row" style={{ alignItems: "end" }}>

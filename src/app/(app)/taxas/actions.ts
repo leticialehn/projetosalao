@@ -46,3 +46,26 @@ export async function salvarTaxa(
   revalidatePath("/caixa");
   return { ok: true };
 }
+
+export async function salvarComissaoBase(
+  _prev: TaxaResult,
+  formData: FormData,
+): Promise<TaxaResult> {
+  const { papel } = await exigirSessao();
+  if (papel !== PAPEL_DONO) return { ok: false, erro: ERRO_SEM_PERMISSAO };
+
+  const comissaoBase = String(formData.get("comissaoBase") ?? "");
+  if (comissaoBase !== "BRUTO" && comissaoBase !== "LIQUIDO") {
+    return { ok: false, erro: "Base de comissão inválida." };
+  }
+
+  await prisma.config.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", comissaoBase },
+    update: { comissaoBase },
+  });
+
+  revalidatePath("/taxas");
+  revalidatePath("/comissoes");
+  return { ok: true };
+}
