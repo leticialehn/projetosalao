@@ -1,4 +1,5 @@
 import { sair } from "@/app/login/actions";
+import { IconChevronDown } from "./icons";
 
 const PAPEL_LABEL: Record<string, string> = { DONO: "Dono", BALCAO: "Balcão" };
 
@@ -9,19 +10,16 @@ export default function Sair({
   usuario: string;
   papel: string;
 }) {
+  const inicial = usuario ? usuario[0].toUpperCase() : "?";
   return (
-    <form
-      action={sair}
-      style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--border)" }}
-    >
-      {usuario && (
-        <div className="muted" style={{ fontSize: 12, padding: "0 12px 8px" }}>
-          {usuario}
-          {papel && ` · ${PAPEL_LABEL[papel] ?? papel}`}
-        </div>
-      )}
-      <button type="submit" className="ghost" style={{ width: "100%" }}>
-        Sair
+    <form action={sair} className="sidebar-footer">
+      <button type="submit" className="user-chip" title="Sair">
+        <span className="avatar">{inicial}</span>
+        <span className="user-info">
+          <span className="user-name">{usuario || "Usuário"}</span>
+          {papel && <span className="user-papel">{PAPEL_LABEL[papel] ?? papel}</span>}
+        </span>
+        <IconChevronDown size={16} className="chevron" />
       </button>
     </form>
   );

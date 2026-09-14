@@ -9,6 +9,18 @@
   --danger: #c0392b;
   --ok: #6b6d43;
   --shadow: 0 1px 2px rgba(107, 109, 67, 0.06), 0 6px 18px rgba(107, 109, 67, 0.08);
+
+  /* Sidebar (Story 4.2 — redesign v2, substitui a sidebar clara da 4.1) */
+  --sidebar-bg: #22392f;
+  --sidebar-text: #aab5a5;
+  --sidebar-brand: #d9b978;
+  --sidebar-active-bg: #f3ead9;
+  --sidebar-active-text: #22392f;
+
+  /* Paleta cíclica das colunas de profissional na Agenda */
+  --col-1: #5f7358;
+  --col-2: #7a3040;
+  --col-3: #b85c2e;
 }
 
 * { box-sizing: border-box; }
@@ -27,7 +39,7 @@ h1, h2, h3, .brand {
   letter-spacing: .01em;
 }
 
-h1::first-letter, .brand::first-letter {
+h1::first-letter {
   font-size: 1.9em;
   font-weight: 700;
   text-transform: uppercase;
@@ -40,38 +52,40 @@ a { color: inherit; text-decoration: none; }
 
 .sidebar {
   width: 220px;
-  background: var(--card);
-  border-right: 1px solid var(--border);
+  background: var(--sidebar-bg);
   padding: 24px 14px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
   font-size: 20px;
   padding: 8px 12px 20px;
   color: var(--primary-dark);
 }
+.brand svg { flex-shrink: 0; }
+.sidebar .brand { color: var(--sidebar-brand); }
 
+.nav { flex: 1; }
 .nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 12px;
-  border-radius: 10px;
-  color: var(--muted);
+  border-radius: 999px;
+  color: var(--sidebar-text);
   font-weight: 500;
   margin-bottom: 3px;
   transition: background .15s ease, color .15s ease;
 }
-.nav a:hover { background: var(--bg); color: var(--text); }
-.nav a.active { background: var(--primary); color: #fff; }
-.nav a::first-letter {
-  font-family: var(--font-heading), Georgia, serif;
-  font-size: 1.9em;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--primary-dark);
-}
-.nav a.active::first-letter { color: #fff; }
+.nav a svg { flex-shrink: 0; }
+.nav a:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.nav a.active { background: var(--sidebar-active-bg); color: var(--sidebar-active-text); }
 
 .prof-nome {
   color: var(--primary-dark);
@@ -83,6 +97,96 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
   text-transform: uppercase;
 }
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+}
+.avatar.on-color { background: rgba(255, 255, 255, .28); color: #fff; }
+
+.sidebar-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: var(--sidebar-text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.user-chip:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+.user-chip .user-info { flex: 1; min-width: 0; overflow: hidden; }
+.user-chip .user-name { display: block; font-size: 13px; font-weight: 600; color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-chip .user-papel { display: block; font-size: 11px; opacity: .75; }
+.user-chip svg.chevron { flex-shrink: 0; opacity: .75; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.pill-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 4px;
+}
+.pill-group button { padding: 7px 14px; }
+.pill-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pill-field svg.leading {
+  position: absolute;
+  left: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.pill-field svg.trailing {
+  position: absolute;
+  right: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.pill-field input, .pill-field select {
+  border-radius: 999px;
+  padding-left: 38px;
+  width: auto;
+}
+.pill-field select { padding-right: 34px; appearance: none; }
+
+.col-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -12px -12px 12px;
+  padding: 14px 16px;
+  border-radius: 12px 12px 0 0;
+  color: #fff;
+}
+.col-header .prof-nome-header { font-weight: 600; margin: 0; }
 
 .content { flex: 1; padding: 32px 40px; max-width: 1100px; }
 
