@@ -439,6 +439,69 @@ so that eu não pague comissão sobre um dinheiro que a adquirente reteve.
 5: Trocar a configuração afeta apenas relatórios gerados depois (sem histórico de base — documentar
    como limitação, igual ao percentual no Epic 1).
 
+## Epic 3 — Controle de estoque
+
+**Status:** Draft (2026-09-14, Morgan @pm). Epic 1 e Epic 2 entregues e validados pelo QA. Este epic
+cobre o primeiro item da lista "fase 3" (`2.6+`): controle de estoque de produtos.
+
+**Objetivo:** o dono passa a saber quanto tem de cada produto (revenda ou insumo), registra entradas
+e saídas manualmente, e é avisado quando um produto está acabando — sem depender de planilha paralela.
+
+### Escopo desta primeira fatia
+
+Fora de escopo nesta fatia (candidatos a uma fatia 3b, se o dono validar a necessidade depois de usar):
+baixa automática de estoque ao concluir um atendimento (vincular produto/insumo a um serviço), venda de
+produto avulsa dentro do fluxo de caixa, relatório de consumo por período. Fica de fora por ora porque
+a dependência (mapear qual serviço consome qual produto/quantidade) é uma modelagem própria que merece
+validação com o dono antes de comprometer — YAGNI até a fatia 1 provar que o controle manual não basta.
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR23:** O dono cadastra produtos (nome, categoria opcional, unidade de medida, estoque mínimo,
+  estoque atual). Ação restrita a `PAPEL_DONO`.
+- **FR24:** O dono registra movimentações manuais de estoque (entrada — compra/reposição; saída —
+  uso/perda/ajuste), cada uma com quantidade, motivo e data; o estoque atual do produto é recalculado
+  a partir do histórico de movimentações.
+- **FR25:** Uma tela lista os produtos com estoque atual abaixo do estoque mínimo configurado (alerta
+  de reposição).
+- **FR26:** Balcão (`PAPEL_BALCAO`) pode visualizar o estoque atual e registrar saída (uso/perda), mas
+  não cadastra produto novo nem edita o estoque mínimo — mesma lógica de restrição já usada em
+  comissão (Epic 2).
+
+#### Non Functional
+
+- **NFR14:** Migração aditiva (tabelas novas `Produto` e `MovimentoEstoque`); não altera nenhuma
+  tabela existente.
+- **NFR15:** Estoque atual nunca é editado diretamente — é sempre a soma das movimentações, para manter
+  histórico auditável (mesmo princípio de `Pagamento` vs. caixa do Epic 1/2).
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 3.1 | Cadastro de produtos | Epic 2 (papéis) | Alta — base para as demais |
+| 3.2 | Movimentação de estoque (entrada/saída manual) | 3.1 | Alta |
+| 3.3 | Alerta de estoque baixo | 3.1, 3.2 | Média |
+
+### Story 3.1 — Cadastro de produtos
+
+As a dono do salão,
+I want cadastrar os produtos que uso ou revendo, com um estoque mínimo de referência,
+so that eu tenha uma lista única de produtos em vez de controlar em papel ou planilha.
+
+#### Acceptance Criteria
+
+1: Tela `/produtos` (protegida, `PAPEL_DONO` cria/edita) lista produtos com nome, categoria, estoque
+   atual e estoque mínimo.
+2: Cadastro de produto: nome (obrigatório), categoria (texto livre, opcional), unidade de medida
+   (ex.: un, ml, g — texto livre), estoque mínimo (número, default 0). Estoque atual inicia em 0 e só
+   muda via movimentação (Story 3.2) — cadastro não define estoque atual diretamente.
+3: Produto pode ser inativado (soft delete via `ativo`, mesmo padrão de `Servico`/`Profissional`) em
+   vez de excluído, preservando o histórico de movimentações já lançadas.
+4: `PAPEL_BALCAO` acessa a listagem (somente leitura) mas não vê/usa os controles de criar/editar.
+
 ## Next Steps
 
 ### UX Expert Prompt
