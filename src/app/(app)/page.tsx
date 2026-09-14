@@ -107,7 +107,8 @@ export default async function AgendaPage({
                         {hora(a.inicio)} {a.cliente.nome}
                       </strong>
                       <span className="muted">
-                        {a.servico.nome} · {a.profissional.nome}
+                        {a.servico.nome} ·{" "}
+                        <span className="prof-nome">{a.profissional.nome}</span>
                       </span>
                     </span>
                     <span className={`badge ${a.status}`}>
@@ -169,7 +170,7 @@ function ColunaDia({
 
   return (
     <div className="agenda-dia">
-      <h3>{profNome}</h3>
+      <h3 className="prof-nome">{profNome}</h3>
       {slots.map((s) => {
         const fimSlot = new Date(s.getTime() + PASSO_MIN * 60000);
         const ocupa = agendamentos.find(

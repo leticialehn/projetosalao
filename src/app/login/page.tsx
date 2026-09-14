@@ -20,7 +20,7 @@ export default async function LoginPage() {
     >
       <div className="card" style={{ width: "100%", maxWidth: 360, marginBottom: 0 }}>
         <div className="brand" style={{ padding: "0 0 16px" }}>
-          Projeto Salão
+          Seu Salão
         </div>
         <h1 style={{ fontSize: 20, marginBottom: 16 }}>Entrar</h1>
         <FormLogin />
