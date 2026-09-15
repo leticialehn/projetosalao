@@ -16,6 +16,10 @@ model Servico {
   criadoEm     DateTime @default(now())
   agendamentos Agendamento[]
   comissaoRegras ComissaoRegra[]
+  // Profissionais que atendem este serviço. Lista vazia = atende quem não
+  // tiver nenhum serviço vinculado (regra de retrocompatibilidade — ver
+  // Profissional.servicos).
+  profissionais Profissional[] @relation("ProfissionalServicos")
 }
 
 model Profissional {
@@ -28,6 +32,10 @@ model Profissional {
   criadoEm     DateTime @default(now())
   agendamentos Agendamento[]
   comissaoRegras ComissaoRegra[]
+  // Serviços que este profissional atende. Lista vazia = atende todos os
+  // serviços (retrocompatibilidade — Story 5.1). A restrição só passa a
+  // valer quando pelo menos um serviço é vinculado explicitamente.
+  servicos     Servico[] @relation("ProfissionalServicos")
 }
 
 model Cliente {

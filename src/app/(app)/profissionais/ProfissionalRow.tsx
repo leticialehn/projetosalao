@@ -18,6 +18,7 @@ type Profissional = {
   ativo: boolean;
   comissaoPercentual: number;
   comissaoRegras?: { servicoId: string | null; percentual: number }[];
+  servicos?: { id: string }[];
 };
 
 type Servico = { id: string; nome: string };
@@ -49,6 +50,7 @@ export default function ProfissionalRow({
       .filter((r) => r.servicoId !== null)
       .map((r) => [r.servicoId as string, r.percentual]),
   );
+  const servicosAtendidos = new Set((p.servicos ?? []).map((s) => s.id));
 
   if (editando) {
     return (
@@ -131,6 +133,24 @@ export default function ProfissionalRow({
                     <input type="hidden" name="profissionalId" value={p.id} />
                     <input type="hidden" name="servicoId" value={s.id} />
                     <label>{s.nome}</label>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontWeight: 400,
+                        fontSize: 13,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="atende"
+                        defaultChecked={servicosAtendidos.has(s.id)}
+                        style={{ width: "auto" }}
+                      />
+                      Atende
+                    </label>
                     <div style={{ display: "flex", gap: 4 }}>
                       <input
                         name="percentual"

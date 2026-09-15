@@ -10,7 +10,10 @@ export default async function ProfissionaisPage() {
   const [profissionais, servicos] = await Promise.all([
     prisma.profissional.findMany({
       orderBy: [{ ativo: "desc" }, { nome: "asc" }],
-      include: { comissaoRegras: { select: { servicoId: true, percentual: true } } },
+      include: {
+        comissaoRegras: { select: { servicoId: true, percentual: true } },
+        servicos: { select: { id: true } },
+      },
     }),
     prisma.servico.findMany({
       where: { ativo: true },

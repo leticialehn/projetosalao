@@ -36,6 +36,19 @@ export async function criarAgendamento(
   const servico = await prisma.servico.findUnique({ where: { id: servicoId } });
   if (!servico) return { ok: false, erro: "Serviço não encontrado." };
 
+  const profissional = await prisma.profissional.findUnique({
+    where: { id: profissionalId },
+    include: { servicos: { select: { id: true } } },
+  });
+  if (!profissional) return { ok: false, erro: "Profissional não encontrado." };
+  // Lista vazia = sem restrição configurada (retrocompatibilidade — Story 5.1, AC 2).
+  if (
+    profissional.servicos.length > 0 &&
+    !profissional.servicos.some((s) => s.id === servicoId)
+  ) {
+    return { ok: false, erro: "Este profissional não atende esse serviço." };
+  }
+
   const fim = new Date(inicio.getTime() + servico.duracaoMin * 60000);
 
   if (await temConflito(prisma, { profissionalId, inicio, fim })) {
