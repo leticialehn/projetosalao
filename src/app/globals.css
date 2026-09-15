@@ -249,7 +249,7 @@ button:hover, .btn:hover { background: var(--primary-dark); }
 button:active, .btn:active { transform: scale(.98); }
 button.ghost, .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
 button.ghost:hover { background: var(--bg); color: var(--text); }
-button.link { background: none; color: var(--primary-dark); padding: 4px 6px; font-weight: 600; }
+button.link { background: none; color: var(--primary-dark); padding: 4px 6px; font-weight: 600; white-space: nowrap; }
 button.link.danger { color: var(--danger); }
 
 .badge {
@@ -284,9 +284,10 @@ dialog.dialogo::backdrop { background: rgba(51, 25, 28, .35); }
 .agenda-dia h3 { margin: 0 0 8px; font-size: 14px; text-transform: capitalize; }
 .slot { display: flex; justify-content: space-between; gap: 8px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 6px; }
 .slot.livre { border-style: dashed; color: var(--muted); }
-.slot .slot-info { display: flex; flex-direction: column; gap: 2px; }
+.slot .slot-info { display: flex; flex-direction: column; gap: 4px; }
+.slot .slot-info .row-actions { margin-top: 4px; padding-top: 6px; border-top: 1px dashed var(--border); }
 
-.row-actions { display: flex; gap: 4px; }
+.row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .muted { color: var(--muted); }
 .empty { color: var(--muted); padding: 24px; text-align: center; }
 .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
