@@ -262,7 +262,7 @@ button.link.danger { color: var(--danger); }
 .badge.AGENDADO { background: #ecd6d9; color: var(--primary); }
 .badge.CONCLUIDO { background: #e3e8da; color: var(--ok); }
 .badge.CANCELADO { background: #f2ddd2; color: var(--danger); }
-.badge.FALTOU { background: #eee7cf; color: #8a7a2f; }
+.badge.FALTOU { background: #eee7cf; color: #6b5e22; }
 .badge.off { background: #ede6d8; color: var(--muted); }
 
 .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
