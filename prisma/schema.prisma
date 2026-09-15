@@ -140,9 +140,23 @@ model Produto {
   categoria     String?
   unidade       String?
   estoqueMinimo Float    @default(0)
-  // Nasce em 0 e só muda via movimentação de estoque (Story 3.2). Nenhuma
-  // action da Story 3.1 escreve neste campo diretamente.
+  // Escrito só dentro da transação de MovimentoEstoque (Story 3.2) —
+  // nenhuma action aceita este campo diretamente de um formulário.
   estoqueAtual  Float    @default(0)
   ativo         Boolean  @default(true)
   criadoEm      DateTime @default(now())
+  movimentos    MovimentoEstoque[]
+}
+
+model MovimentoEstoque {
+  id        String   @id @default(cuid())
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produtoId String
+  tipo      String   // ENTRADA | SAIDA
+  quantidade Float
+  motivo    String
+  data      DateTime @default(now())
+  criadoEm  DateTime @default(now())
+
+  @@index([produtoId])
 }
