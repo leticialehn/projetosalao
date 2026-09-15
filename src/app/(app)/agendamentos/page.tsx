@@ -39,7 +39,11 @@ export default async function AgendamentosPage({
       orderBy: { inicio: filtro === "passados" ? "desc" : "asc" },
     }),
     prisma.cliente.findMany({ orderBy: { nome: "asc" } }),
-    prisma.profissional.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }),
+    prisma.profissional.findMany({
+      where: { ativo: true },
+      orderBy: { nome: "asc" },
+      include: { servicos: { select: { id: true } } },
+    }),
     prisma.servico.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }),
   ]);
 
@@ -56,7 +60,11 @@ export default async function AgendamentosPage({
 
       <NovoAgendamento
         clientes={clientes}
-        profissionais={profissionais}
+        profissionais={profissionais.map((p) => ({
+          id: p.id,
+          nome: p.nome,
+          servicoIds: p.servicos.map((s) => s.id),
+        }))}
         servicos={servicos}
         inicial={{
           inicio: inicio ?? null,

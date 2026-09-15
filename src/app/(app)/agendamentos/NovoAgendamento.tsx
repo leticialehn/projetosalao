@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { criarAgendamento, type AgendamentoResult } from "./actions";
 
 type Opt = { id: string; nome: string };
+type ProfissionalOpt = Opt & { servicoIds: string[] };
 
 const inicial: AgendamentoResult = { ok: false };
 
@@ -20,11 +21,33 @@ export default function NovoAgendamento({
   inicial: pre = {},
 }: {
   clientes: Opt[];
-  profissionais: Opt[];
+  profissionais: ProfissionalOpt[];
   servicos: { id: string; nome: string; duracaoMin: number }[];
   inicial?: Inicial;
 }) {
   const [state, formAction] = useActionState(criarAgendamento, inicial);
+  const [servicoId, setServicoId] = useState("");
+  const [profissionalId, setProfissionalId] = useState(pre.profissionalId ?? "");
+
+  // Sem serviço escolhido ainda: mostra todos (comportamento atual). Com
+  // serviço escolhido: só quem atende, mais quem não tem nenhum vínculo
+  // configurado (retrocompatibilidade — Story 5.1, AC 2).
+  const profissionaisVisiveis = !servicoId
+    ? profissionais
+    : profissionais.filter(
+        (p) => p.servicoIds.length === 0 || p.servicoIds.includes(servicoId),
+      );
+
+  function selecionarServico(novoServicoId: string) {
+    setServicoId(novoServicoId);
+    const aindaValido = profissionais
+      .filter(
+        (p) =>
+          p.servicoIds.length === 0 || p.servicoIds.includes(novoServicoId),
+      )
+      .some((p) => p.id === profissionalId);
+    if (!aindaValido) setProfissionalId("");
+  }
 
   return (
     <div className="card">
@@ -50,7 +73,12 @@ export default function NovoAgendamento({
           </div>
           <div className="field">
             <label>Serviço</label>
-            <select name="servicoId" required defaultValue="">
+            <select
+              name="servicoId"
+              required
+              value={servicoId}
+              onChange={(e) => selecionarServico(e.target.value)}
+            >
               <option value="" disabled>
                 Selecione…
               </option>
@@ -68,12 +96,13 @@ export default function NovoAgendamento({
             <select
               name="profissionalId"
               required
-              defaultValue={pre.profissionalId ?? ""}
+              value={profissionalId}
+              onChange={(e) => setProfissionalId(e.target.value)}
             >
               <option value="" disabled>
                 Selecione…
               </option>
-              {profissionais.map((p) => (
+              {profissionaisVisiveis.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nome}
                 </option>

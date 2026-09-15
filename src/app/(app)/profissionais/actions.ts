@@ -103,6 +103,26 @@ export async function definirComissaoServico(
     return { ok: false, erro: "Profissional ou serviço não encontrado." };
   }
 
+  const [profissional, servico] = await Promise.all([
+    prisma.profissional.findUnique({ where: { id: profissionalId }, select: { id: true } }),
+    prisma.servico.findUnique({ where: { id: servicoId }, select: { id: true } }),
+  ]);
+  if (!profissional || !servico) {
+    return { ok: false, erro: "Profissional ou serviço não encontrado." };
+  }
+
+  // Vínculo "atende este serviço" (Story 5.1) — independente da comissão,
+  // salvo no mesmo formulário/botão por serviço (REUSE, sem criar tela nova).
+  const atende = formData.get("atende") === "on";
+  await prisma.profissional.update({
+    where: { id: profissionalId },
+    data: {
+      servicos: atende
+        ? { connect: { id: servicoId } }
+        : { disconnect: { id: servicoId } },
+    },
+  });
+
   const bruto = String(formData.get("percentual") ?? "").trim();
 
   // Campo vazio = remove a regra específica (volta a usar a geral).
@@ -118,14 +138,6 @@ export async function definirComissaoServico(
   const percentual = Number(bruto.replace(",", "."));
   if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
     return { ok: false, erro: "Percentual deve estar entre 0 e 100." };
-  }
-
-  const [profissional, servico] = await Promise.all([
-    prisma.profissional.findUnique({ where: { id: profissionalId }, select: { id: true } }),
-    prisma.servico.findUnique({ where: { id: servicoId }, select: { id: true } }),
-  ]);
-  if (!profissional || !servico) {
-    return { ok: false, erro: "Profissional ou serviço não encontrado." };
   }
 
   await prisma.comissaoRegra.upsert({
