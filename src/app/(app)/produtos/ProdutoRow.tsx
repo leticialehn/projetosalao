@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { atualizarProduto, excluirProduto } from "./actions";
 import DeleteButton from "@/components/DeleteButton";
@@ -85,7 +86,11 @@ export default function ProdutoRow({
 
   return (
     <tr>
-      <td>{produto.nome}</td>
+      <td>
+        <Link href={`/produtos/${produto.id}`} style={{ fontWeight: 600 }}>
+          {produto.nome}
+        </Link>
+      </td>
       <td>{produto.categoria ?? <span className="muted">—</span>}</td>
       <td>{produto.unidade ?? <span className="muted">—</span>}</td>
       <td>{produto.estoqueAtual}</td>

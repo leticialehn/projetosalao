@@ -5,6 +5,7 @@ let PAPEL = "DONO";
 const createMock = vi.fn(async () => ({ id: "prod1" }));
 const updateMock = vi.fn();
 const deleteMock = vi.fn();
+const movimentoCountMock = vi.fn(async () => 0);
 
 vi.mock("server-only", () => ({}));
 
@@ -17,6 +18,7 @@ vi.mock("@/lib/sessao", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     produto: { create: createMock, update: updateMock, delete: deleteMock },
+    movimentoEstoque: { count: movimentoCountMock },
   },
 }));
 
@@ -37,6 +39,8 @@ beforeEach(() => {
   createMock.mockClear();
   updateMock.mockClear();
   deleteMock.mockClear();
+  movimentoCountMock.mockClear();
+  movimentoCountMock.mockImplementation(async () => 0);
 });
 
 describe("actions de produto — autorização por papel", () => {
@@ -88,9 +92,21 @@ describe("actions de produto — autorização por papel", () => {
     expect(updateMock).toHaveBeenCalledTimes(1);
   });
 
-  it("DONO → excluirProduto grava", async () => {
+  it("DONO → excluirProduto exclui fisicamente quando não há movimentação (Story 3.2)", async () => {
     PAPEL = "DONO";
     await excluirProduto(fd({ id: "prod1" }));
     expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("DONO → excluirProduto inativa em vez de excluir quando há movimentação (Story 3.2, preserva NFR15)", async () => {
+    PAPEL = "DONO";
+    movimentoCountMock.mockImplementation(async () => 2);
+    await excluirProduto(fd({ id: "prod1" }));
+    expect(deleteMock).not.toHaveBeenCalled();
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: "prod1" },
+      data: { ativo: false },
+    });
   });
 });

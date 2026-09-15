@@ -42,8 +42,13 @@ export async function excluirProduto(formData: FormData) {
   if (papel !== PAPEL_DONO) return;
   const id = String(formData.get("id"));
   if (!id) return;
-  // Nenhuma tabela referencia Produto ainda (MovimentoEstoque chega na
-  // Story 3.2), então a exclusão física sempre se aplica por ora.
-  await prisma.produto.delete({ where: { id } });
+  // Mesmo padrão de excluirServico: com movimentação registrada (Story 3.2),
+  // inativa em vez de excluir, preservando o histórico auditável (NFR15).
+  const emUso = await prisma.movimentoEstoque.count({ where: { produtoId: id } });
+  if (emUso > 0) {
+    await prisma.produto.update({ where: { id }, data: { ativo: false } });
+  } else {
+    await prisma.produto.delete({ where: { id } });
+  }
   revalidatePath("/produtos");
 }
