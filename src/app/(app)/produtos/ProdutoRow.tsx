@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { atualizarProduto, excluirProduto } from "./actions";
 import DeleteButton from "@/components/DeleteButton";
+import { emAlerta } from "@/lib/estoque";
 
 type Produto = {
   id: string;
@@ -96,11 +97,16 @@ export default function ProdutoRow({
       <td>{produto.estoqueAtual}</td>
       <td>{produto.estoqueMinimo}</td>
       <td>
-        {produto.ativo ? (
-          <span className="badge CONCLUIDO">Ativo</span>
-        ) : (
-          <span className="badge off">Inativo</span>
-        )}
+        <div className="row-actions">
+          {produto.ativo ? (
+            <span className="badge CONCLUIDO">Ativo</span>
+          ) : (
+            <span className="badge off">Inativo</span>
+          )}
+          {emAlerta(produto) && (
+            <span className="badge CANCELADO">Estoque baixo</span>
+          )}
+        </div>
       </td>
       {podeGerenciar && (
         <td>
