@@ -38,6 +38,8 @@ model Profissional {
   servicos     Servico[] @relation("ProfissionalServicos")
   // Login vinculado (Story 6.1) — opcional; nem todo profissional tem conta.
   usuario      Usuario?
+  // Metas (Story 7.1) — onDelete: Cascade na FK: meta órfã não faz sentido.
+  metas        Meta[]
 }
 
 model Cliente {
@@ -169,4 +171,17 @@ model MovimentoEstoque {
   criadoEm  DateTime @default(now())
 
   @@index([produtoId])
+}
+
+model Meta {
+  id             String   @id @default(cuid())
+  tipo           String   // FATURAMENTO | COMISSAO — meta do salão (profissionalId nulo) é sempre FATURAMENTO
+  profissional   Profissional? @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  profissionalId String?  // null = meta do salão inteiro
+  periodoInicio  DateTime
+  periodoFim     DateTime
+  valorAlvo      Float
+  criadoEm       DateTime @default(now())
+
+  @@index([profissionalId])
 }
