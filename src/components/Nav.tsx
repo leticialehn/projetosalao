@@ -33,10 +33,11 @@ const links = [
 export default function Nav({ papel }: { papel: string }) {
   const path = usePathname();
   const ehDono = papel === "DONO";
+  const ehProfissional = papel === "PROFISSIONAL";
   return (
     <nav className="nav">
       {links
-        .filter((l) => !l.dono || ehDono)
+        .filter((l) => (ehProfissional ? l.href === "/" : !l.dono || ehDono))
         .map((l) => {
           const active =
             l.href === "/" ? path === "/" : path.startsWith(l.href);

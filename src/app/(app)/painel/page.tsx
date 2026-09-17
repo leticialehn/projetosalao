@@ -2,10 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { brl, hora } from "@/lib/format";
 import { inicioDoDia, inicioDoDiaSeguinte } from "@/lib/datas";
 import { resumoCaixa, type PagamentoInput } from "@/lib/financeiro";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
+  await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
   const agora = new Date();
   const de = inicioDoDia(agora);
   const ate = inicioDoDiaSeguinte(agora);

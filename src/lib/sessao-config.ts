@@ -8,6 +8,8 @@ export interface DadosSessao {
   usuarioId?: string;
   usuario?: string;
   papel?: string;
+  /** Só preenchido pra papel PROFISSIONAL (Story 6.1/6.2). */
+  profissionalId?: string;
 }
 
 export const NOME_COOKIE = "salao_sessao";

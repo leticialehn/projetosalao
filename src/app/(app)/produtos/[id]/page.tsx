@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { dataHora } from "@/lib/format";
-import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 import FormMovimento from "./FormMovimento";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export default async function ProdutoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const sessao = await exigirSessao();
+  const sessao = await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
 
   const produto = await prisma.produto.findUnique({
     where: { id },

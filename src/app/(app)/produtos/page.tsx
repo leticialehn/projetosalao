@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 import { emAlerta } from "@/lib/estoque";
 import { criarProduto } from "./actions";
 import ProdutoRow from "./ProdutoRow";
@@ -11,7 +11,7 @@ export default async function ProdutosPage({
 }: {
   searchParams: Promise<{ filtro?: string }>;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
   const podeGerenciar = sessao.papel === PAPEL_DONO;
   const { filtro = "todos" } = await searchParams;
 

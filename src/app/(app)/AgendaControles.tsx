@@ -8,11 +8,13 @@ export default function AgendaControles({
   modo,
   prof,
   profissionais,
+  mostrarFiltroProfissional = true,
 }: {
   data: string;
   modo: string;
   prof: string;
   profissionais: { id: string; nome: string }[];
+  mostrarFiltroProfissional?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -69,18 +71,20 @@ export default function AgendaControles({
           onChange={(e) => set({ data: e.target.value })}
         />
       </div>
-      <div className="pill-field">
-        <IconUser size={16} className="leading" />
-        <select value={prof} onChange={(e) => set({ prof: e.target.value })}>
-          <option value="todos">Todas as profissionais</option>
-          {profissionais.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nome}
-            </option>
-          ))}
-        </select>
-        <IconChevronDown size={14} className="trailing" />
-      </div>
+      {mostrarFiltroProfissional && (
+        <div className="pill-field">
+          <IconUser size={16} className="leading" />
+          <select value={prof} onChange={(e) => set({ prof: e.target.value })}>
+            <option value="todos">Todas as profissionais</option>
+            {profissionais.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+          <IconChevronDown size={14} className="trailing" />
+        </div>
+      )}
     </div>
   );
 }

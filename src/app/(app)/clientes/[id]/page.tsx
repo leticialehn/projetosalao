@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { brl, dataHora, STATUS_LABEL } from "@/lib/format";
 import Observacoes from "./Observacoes";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function ClientePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
   const { id } = await params;
 
   const cliente = await prisma.cliente.findUnique({
