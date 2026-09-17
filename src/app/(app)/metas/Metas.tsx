@@ -19,6 +19,8 @@ type Meta = {
   periodoInicio: string;
   periodoFim: string;
   valorAlvo: number;
+  valorAtual: number;
+  percentual: number;
 };
 
 export default function Metas({
@@ -120,7 +122,7 @@ export default function Metas({
                 <th>Escopo</th>
                 <th>Tipo</th>
                 <th>Período</th>
-                <th>Valor-alvo</th>
+                <th>Progresso</th>
                 <th></th>
               </tr>
             </thead>
@@ -132,7 +134,29 @@ export default function Metas({
                   <td>
                     {m.periodoInicio} a {m.periodoFim}
                   </td>
-                  <td>{brl(m.valorAlvo)}</td>
+                  <td style={{ minWidth: 160 }}>
+                    <div
+                      style={{
+                        height: 8,
+                        borderRadius: 999,
+                        background: "var(--border)",
+                        overflow: "hidden",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${m.percentual}%`,
+                          borderRadius: 999,
+                          background: "var(--primary)",
+                        }}
+                      />
+                    </div>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {brl(m.valorAtual)} de {brl(m.valorAlvo)} ({m.percentual}%)
+                    </span>
+                  </td>
                   <td>
                     <form action={excluirMeta}>
                       <input type="hidden" name="id" value={m.id} />
