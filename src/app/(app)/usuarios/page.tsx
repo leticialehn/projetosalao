@@ -8,10 +8,23 @@ export const dynamic = "force-dynamic";
 export default async function UsuariosPage() {
   const sessao = await exigirPapel(PAPEL_DONO);
 
-  const usuarios = await prisma.usuario.findMany({
-    orderBy: [{ papel: "asc" }, { usuario: "asc" }],
-    select: { id: true, usuario: true, papel: true, criadoEm: true },
-  });
+  const [usuarios, profissionaisDisponiveis] = await Promise.all([
+    prisma.usuario.findMany({
+      orderBy: [{ papel: "asc" }, { usuario: "asc" }],
+      select: {
+        id: true,
+        usuario: true,
+        papel: true,
+        criadoEm: true,
+        profissional: { select: { nome: true } },
+      },
+    }),
+    prisma.profissional.findMany({
+      where: { ativo: true, usuario: null },
+      select: { id: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
+  ]);
 
   const totalDonos = usuarios.filter((u) => u.papel === PAPEL_DONO).length;
 
@@ -24,9 +37,11 @@ export default async function UsuariosPage() {
         usuarios={usuarios.map((u) => ({
           ...u,
           criadoEm: dataHora(u.criadoEm),
+          profissionalNome: u.profissional?.nome ?? null,
         }))}
         usuarioAtualId={sessao.usuarioId}
         totalDonos={totalDonos}
+        profissionaisDisponiveis={profissionaisDisponiveis}
       />
     </>
   );

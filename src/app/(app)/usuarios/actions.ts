@@ -7,6 +7,7 @@ import {
   exigirSessao,
   PAPEL_DONO,
   PAPEL_BALCAO,
+  PAPEL_PROFISSIONAL,
   ERRO_SEM_PERMISSAO,
 } from "@/lib/sessao";
 
@@ -18,8 +19,16 @@ async function soDono(): Promise<UsuarioResult | null> {
   return null;
 }
 
+/** Papéis que `mudarPapelUsuario` aceita — conversão para/de PROFISSIONAL fica fora desta fatia. */
 function papelValido(p: string): p is typeof PAPEL_DONO | typeof PAPEL_BALCAO {
   return p === PAPEL_DONO || p === PAPEL_BALCAO;
+}
+
+/** Papéis que `criarUsuario` aceita — inclui PROFISSIONAL, que exige `profissionalId`. */
+function papelCriacaoValido(
+  p: string,
+): p is typeof PAPEL_DONO | typeof PAPEL_BALCAO | typeof PAPEL_PROFISSIONAL {
+  return p === PAPEL_DONO || p === PAPEL_BALCAO || p === PAPEL_PROFISSIONAL;
 }
 
 /** Quantos DONO restariam se o usuário `id` deixasse de ser DONO. */
@@ -44,8 +53,29 @@ export async function criarUsuario(
   if (senha.length < 8) {
     return { ok: false, erro: "A senha deve ter pelo menos 8 caracteres." };
   }
-  if (!papelValido(papel)) {
+  if (!papelCriacaoValido(papel)) {
     return { ok: false, erro: "Papel inválido." };
+  }
+
+  let profissionalId: string | undefined;
+  if (papel === PAPEL_PROFISSIONAL) {
+    profissionalId = String(formData.get("profissionalId") ?? "").trim();
+    if (!profissionalId) {
+      return { ok: false, erro: "Selecione o profissional." };
+    }
+    const profissional = await prisma.profissional.findUnique({
+      where: { id: profissionalId },
+      select: { ativo: true, usuario: { select: { id: true } } },
+    });
+    if (!profissional) {
+      return { ok: false, erro: "Profissional não encontrado." };
+    }
+    if (!profissional.ativo) {
+      return { ok: false, erro: "Profissional inativo." };
+    }
+    if (profissional.usuario) {
+      return { ok: false, erro: "Este profissional já tem um login." };
+    }
   }
 
   const existe = await prisma.usuario.findUnique({ where: { usuario } });
@@ -54,7 +84,12 @@ export async function criarUsuario(
   }
 
   await prisma.usuario.create({
-    data: { usuario, senhaHash: await bcrypt.hash(senha, 10), papel },
+    data: {
+      usuario,
+      senhaHash: await bcrypt.hash(senha, 10),
+      papel,
+      profissionalId,
+    },
   });
   revalidatePath("/usuarios");
   return { ok: true };
@@ -91,8 +126,11 @@ export async function mudarPapelUsuario(
 
   const id = String(formData.get("id") ?? "");
   const papel = String(formData.get("papel") ?? "");
-  if (!id || !papelValido(papel)) {
-    return { ok: false, erro: "Dados inválidos." };
+  if (!id) return { ok: false, erro: "Dados inválidos." };
+  if (!papelValido(papel)) {
+    // Cobre também papel === PAPEL_PROFISSIONAL: conversão para/de
+    // PROFISSIONAL fica fora desta fatia (ver Story 6.1, Dev Notes).
+    return { ok: false, erro: "Papel inválido." };
   }
 
   if (papel === PAPEL_BALCAO && (await outrosDonos(id)) === 0) {

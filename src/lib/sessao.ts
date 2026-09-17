@@ -44,6 +44,7 @@ export async function exigirSessao(): Promise<Required<DadosSessao>> {
 
 export const PAPEL_DONO = "DONO";
 export const PAPEL_BALCAO = "BALCAO";
+export const PAPEL_PROFISSIONAL = "PROFISSIONAL";
 
 /** Mensagem padrão para ação negada por papel. */
 export const ERRO_SEM_PERMISSAO = "Ação permitida apenas para o dono.";
