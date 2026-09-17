@@ -15,7 +15,7 @@ import {
   type FormaPagamento,
   type RegraComissao,
 } from "@/lib/financeiro";
-import { valorAtingido, percentualAtingido, type MetaTipo } from "@/lib/metas";
+import { progressoDaMeta } from "@/lib/metas-progresso";
 import { brl } from "@/lib/format";
 import Metas from "./Metas";
 
@@ -98,27 +98,16 @@ export default async function MetasPage({
   }
 
   // Progresso de cada meta — uma busca por meta, no próprio período dela.
+  // Lógica extraída (Story 7.3) para reuso em src/app/(app)/page.tsx.
   const metasComProgresso = await Promise.all(
     metasDb.map(async (m) => {
-      const atendimentosDb = await prisma.agendamento.findMany({
-        where: {
-          status: "CONCLUIDO",
-          valorCobrado: { not: null },
-          inicio: { gte: m.periodoInicio, lt: inicioDoDiaSeguinte(m.periodoFim) },
-          ...(m.profissionalId ? { profissionalId: m.profissionalId } : {}),
-        },
-        select: SELECT_ATENDIMENTO,
-      });
-      const agregado = comissaoPorProfissionalComServico(
-        paraAtendimentoInput(atendimentosDb),
+      const { valorAtual, percentual } = await progressoDaMeta(
+        prisma,
+        m,
         regrasPorProfissional,
         base,
         taxasPorForma,
       );
-      const valorAtual = valorAtingido(agregado, {
-        tipo: m.tipo as MetaTipo,
-        profissionalId: m.profissionalId,
-      });
       return {
         id: m.id,
         tipo: m.tipo,
@@ -127,7 +116,7 @@ export default async function MetasPage({
         periodoFim: toDateParam(m.periodoFim),
         valorAlvo: m.valorAlvo,
         valorAtual,
-        percentual: percentualAtingido(valorAtual, m.valorAlvo),
+        percentual,
       };
     }),
   );

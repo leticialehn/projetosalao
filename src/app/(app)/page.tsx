@@ -9,6 +9,13 @@ import {
   toDateParam,
 } from "@/lib/datas";
 import { exigirSessao, PAPEL_PROFISSIONAL } from "@/lib/sessao";
+import {
+  type ComissaoBase,
+  type ConfigTaxa,
+  type FormaPagamento,
+  type RegraComissao,
+} from "@/lib/financeiro";
+import { progressoDaMeta, metasAtivasHoje } from "@/lib/metas-progresso";
 import AgendaControles from "./AgendaControles";
 import AgendaAcoes from "./AgendaAcoes";
 import Link from "next/link";
@@ -39,6 +46,45 @@ export default async function AgendaPage({
       </>
     );
   }
+
+  // Notificações de meta (Story 7.3) — busca própria, independente do resto
+  // da agenda. `todosProfissionais` (sem `where: ativo`) é distinto de
+  // `profissionais` abaixo (só ativos, usado nas colunas): um profissional
+  // inativo ainda pode ter uma ComissaoRegra que precisa contar aqui.
+  const [todosProfissionais, config, taxasDb, metasHoje] = await Promise.all([
+    prisma.profissional.findMany({ include: { comissaoRegras: true } }),
+    prisma.config.findUnique({ where: { id: "singleton" } }),
+    prisma.taxaPagamento.findMany(),
+    metasAtivasHoje(prisma, new Date()),
+  ]);
+  const baseComissao: ComissaoBase =
+    config?.comissaoBase === "LIQUIDO" ? "LIQUIDO" : "BRUTO";
+  const taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>> = {};
+  for (const t of taxasDb) {
+    taxasPorForma[t.formaPagamento as FormaPagamento] = {
+      percentual: t.percentual,
+      valorFixo: t.valorFixo,
+    };
+  }
+  const regrasPorProfissional: Record<string, RegraComissao[]> = {};
+  for (const p of todosProfissionais) {
+    regrasPorProfissional[p.id] = p.comissaoRegras.map((r) => ({
+      servicoId: r.servicoId,
+      percentual: r.percentual,
+    }));
+  }
+  const metasComProgresso = await Promise.all(
+    metasHoje.map(async (m) => ({
+      ...m,
+      ...(await progressoDaMeta(prisma, m, regrasPorProfissional, baseComissao, taxasPorForma)),
+    })),
+  );
+  const metasBatidas = metasComProgresso.filter((m) => m.percentual >= 100);
+  const metaPropriaEmAberto = ehProfissional
+    ? metasComProgresso.find(
+        (m) => m.profissionalId === sessao.profissionalId && m.percentual < 100,
+      )
+    : undefined;
 
   const sp = await searchParams;
   const ref = parseDataParam(sp.data) ?? inicioDoDia(new Date());
@@ -77,6 +123,28 @@ export default async function AgendaPage({
     <>
       <h1>Agenda</h1>
       <p className="subtitle">Horários do salão</p>
+
+      {metasBatidas.length > 0 && (
+        <div className="card">
+          {metasBatidas.map((m) => (
+            <p key={m.id} style={{ margin: "4px 0" }}>
+              <span className="badge CONCLUIDO">Meta batida</span>{" "}
+              {m.profissionalNome ?? "Salão inteiro"} —{" "}
+              {m.tipo === "COMISSAO" ? "Comissão" : "Faturamento"}
+            </p>
+          ))}
+        </div>
+      )}
+      {metaPropriaEmAberto && (
+        <div className="card">
+          <p style={{ margin: 0 }}>
+            Faltam {brl(metaPropriaEmAberto.valorAlvo - metaPropriaEmAberto.valorAtual)}{" "}
+            pra bater sua meta de{" "}
+            {metaPropriaEmAberto.tipo === "COMISSAO" ? "comissão" : "faturamento"} (
+            {metaPropriaEmAberto.percentual}%).
+          </p>
+        </div>
+      )}
 
       <AgendaControles
         data={toDateParam(ref)}
