@@ -130,6 +130,9 @@ documentados nas stories. E2E fora de escopo no MVP.
 
 - **Epic 1 — Controle operacional e financeiro do salão:** adicionar caixa, comissões, agenda operacional, ficha de cliente e painel do dia sobre a base de agendamento existente, entregue como MVP completo. **(Done — 2026-09-10, QA 9 PASS / 1 CONCERNS)**
 - **Epic 2 — Segurança de acesso e refinamento financeiro:** login e papéis (dono/balcão), taxa de maquininha no caixa e comissão por serviço / sobre líquido. Pré-requisito para publicar a URL. **(Draft)**
+- **Epic 3 — Controle de estoque:** cadastro de produtos, movimentação manual e alerta de estoque baixo. **(Done — 2026-09-16, QA 3 PASS)**
+- **Epic 6 — Acesso do profissional:** novo papel `PROFISSIONAL`, vínculo com o cadastro de profissional existente, agenda individual responsiva para uso no celular. **(Draft)**
+- **Epic 7 — Metas & Performance:** metas de faturamento/comissão (salão e por profissional), ranking do período e notificações individualizadas de incentivo. Depende do Epic 6 para a parte de notificação individual. **(Draft)**
 
 Epic único por decisão de escopo (2026-09-09): as cinco áreas se sustentam mutuamente
 (caixa depende de valor cobrado, comissão depende de caixa, painel depende de ambos) e o valor
@@ -501,6 +504,90 @@ so that eu tenha uma lista única de produtos em vez de controlar em papel ou pl
 3: Produto pode ser inativado (soft delete via `ativo`, mesmo padrão de `Servico`/`Profissional`) em
    vez de excluído, preservando o histórico de movimentações já lançadas.
 4: `PAPEL_BALCAO` acessa a listagem (somente leitura) mas não vê/usa os controles de criar/editar.
+
+## Epic 6 — Acesso do profissional
+
+**Status:** Draft (2026-09-17, Morgan @pm). Epic 1, 2 e 3 entregues. Este epic introduz o primeiro
+acesso ao sistema que não é `DONO` nem `BALCAO`: o próprio profissional que atende.
+
+**Objetivo:** cada profissional acessa, pelo navegador do celular, a própria agenda — e só a própria
+agenda, sem ver atendimentos de outros profissionais nem telas de caixa/comissões/cadastro.
+
+### Escopo desta primeira fatia
+
+Fora de escopo nesta fatia: troca de senha pelo próprio profissional, edição de perfil, qualquer tela
+além da agenda (mesmo dados relacionados aos próprios atendimentos, como a própria comissão — isso é
+tratado no Epic 7), e aplicativo nativo (a entrega aqui é o mesmo sistema web, responsivo para celular,
+não um app publicado em loja).
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR27:** Novo papel `PAPEL_PROFISSIONAL`. O dono cadastra o login (usuário/senha) de um profissional
+  e vincula esse login a um registro `Profissional` já existente (relação um-para-um).
+- **FR28:** Um usuário logado com papel `PROFISSIONAL` vê, na agenda, somente os atendimentos do
+  `Profissional` ao qual está vinculado — nenhuma outra tela (caixa, comissões de terceiros, clientes,
+  cadastros) fica acessível a esse papel.
+- **FR29:** A agenda (e as demais telas acessíveis ao papel `PROFISSIONAL`) é responsiva, com uso
+  confortável em tela de celular.
+
+#### Non Functional
+
+- **NFR16:** O vínculo `Usuario` ↔ `Profissional` é um-para-um; um `Usuario` com papel `PROFISSIONAL`
+  sem vínculo não deve conseguir usar o sistema de forma útil — a falha é explícita, não um erro genérico.
+- **NFR17:** Nenhuma mudança de comportamento para os papéis `DONO`/`BALCAO` já existentes.
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 6.1 | Papel `PROFISSIONAL` + vínculo `Usuario`↔`Profissional` + cadastro pelo dono | Epic 2 (papéis) | Alta — base para as demais |
+| 6.2 | Agenda do profissional logado (escopada ao próprio profissional, responsiva) | 6.1 | Alta |
+
+## Epic 7 — Metas & Performance
+
+**Status:** Draft (2026-09-17, Morgan @pm). Depende do Epic 1 (dados de faturamento/comissão já
+calculados) para as stories 7.1/7.2, e do **Epic 6** para a story 7.3 (notificação individual precisa
+saber quem está logado).
+
+**Objetivo:** o dono define metas de faturamento — do salão e, opcionalmente, por profissional — e o
+sistema acompanha o progresso automaticamente a partir dos pagamentos já registrados, sem input manual
+adicional. Profissionais recebem avisos individualizados de incentivo.
+
+### Escopo desta primeira fatia
+
+Fora de escopo nesta fatia: notificação por push/e-mail/WhatsApp fora do sistema (é um módulo à parte,
+com custo de API externa), badges/gamificação, recompensas automáticas atreladas a meta batida.
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR30:** O dono define uma meta de faturamento do salão para um período (ex.: um mês) e,
+  opcionalmente, uma meta por profissional (faturamento ou comissão).
+- **FR31:** O progresso da meta é calculado automaticamente a partir dos pagamentos/comissões já
+  registrados no período coberto pela meta — nenhum lançamento manual adicional.
+- **FR32:** Uma tela de ranking compara profissionais num período (faturamento, comissão ou número de
+  atendimentos).
+- **FR33:** Quando uma meta é batida, a notificação segue duas regras: a meta do salão e as metas de
+  outros profissionais aparecem para todos; uma mensagem de incentivo ou de quanto falta para bater a
+  própria meta aparece **somente** para o profissional dono daquela meta (requer Epic 6, para saber
+  quem está logado).
+
+#### Non Functional
+
+- **NFR18:** Modelo de dados aditivo (nova tabela `Meta`), sem alterar nenhuma tabela existente.
+- **NFR19:** O cálculo de progresso reusa as mesmas funções puras já usadas por Caixa/Comissões
+  (`src/lib/financeiro.ts`) — nenhuma lógica financeira duplicada.
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 7.1 | Modelo de meta + tela do dono para definir metas | Epic 1 | Alta — base para as demais |
+| 7.2 | Acompanhamento de progresso + ranking do período | 7.1 | Alta |
+| 7.3 | Notificações (meta batida pública + incentivo individual) | 7.1, 7.2, **Epic 6** | Média |
 
 ## Next Steps
 
