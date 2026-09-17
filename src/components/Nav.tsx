@@ -14,12 +14,14 @@ import {
   IconTag,
   IconReceipt,
   IconSettings,
+  IconTarget,
 } from "./icons";
 
 const links = [
   { href: "/", label: "Agenda", dono: false, Icon: IconCalendar },
   { href: "/painel", label: "Painel do dia", dono: false, Icon: IconHome },
   { href: "/caixa", label: "Caixa", dono: false, Icon: IconWallet },
+  { href: "/metas", label: "Metas", dono: true, Icon: IconTarget },
   { href: "/comissoes", label: "Comissões", dono: true, Icon: IconPercent },
   { href: "/agendamentos", label: "Agendamentos", dono: false, Icon: IconCalendarCheck },
   { href: "/clientes", label: "Clientes", dono: false, Icon: IconUsers },
