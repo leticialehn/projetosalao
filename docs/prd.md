@@ -129,10 +129,10 @@ documentados nas stories. E2E fora de escopo no MVP.
 ## Epic List
 
 - **Epic 1 — Controle operacional e financeiro do salão:** adicionar caixa, comissões, agenda operacional, ficha de cliente e painel do dia sobre a base de agendamento existente, entregue como MVP completo. **(Done — 2026-09-10, QA 9 PASS / 1 CONCERNS)**
-- **Epic 2 — Segurança de acesso e refinamento financeiro:** login e papéis (dono/balcão), taxa de maquininha no caixa e comissão por serviço / sobre líquido. Pré-requisito para publicar a URL. **(Draft)**
+- **Epic 2 — Segurança de acesso e refinamento financeiro:** login e papéis (dono/balcão), taxa de maquininha no caixa e comissão por serviço / sobre líquido. Pré-requisito para publicar a URL. **(Done — 2026-09-17, stories 2.1–2.5)**
 - **Epic 3 — Controle de estoque:** cadastro de produtos, movimentação manual e alerta de estoque baixo. **(Done — 2026-09-16, QA 3 PASS)**
-- **Epic 6 — Acesso do profissional:** novo papel `PROFISSIONAL`, vínculo com o cadastro de profissional existente, agenda individual responsiva para uso no celular. **(Draft)**
-- **Epic 7 — Metas & Performance:** metas de faturamento/comissão (salão e por profissional), ranking do período e notificações individualizadas de incentivo. Depende do Epic 6 para a parte de notificação individual. **(Draft)**
+- **Epic 6 — Acesso do profissional:** novo papel `PROFISSIONAL`, vínculo com o cadastro de profissional existente, agenda individual responsiva para uso no celular. **(Done — 2026-09-17, stories 6.1–6.2)**
+- **Epic 7 — Metas & Performance:** metas de faturamento/comissão (salão e por profissional), ranking do período e notificações individualizadas de incentivo. Depende do Epic 6 para a parte de notificação individual. **(Done — 2026-09-17, stories 7.1–7.3, QA gate PASS)**
 
 Epic único por decisão de escopo (2026-09-09): as cinco áreas se sustentam mutuamente
 (caixa depende de valor cobrado, comissão depende de caixa, painel depende de ambos) e o valor
