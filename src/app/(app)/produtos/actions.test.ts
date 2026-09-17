@@ -74,7 +74,8 @@ describe("actions de produto — autorização por papel", () => {
       }),
     );
     expect(createMock).toHaveBeenCalledTimes(1);
-    const dataArg = createMock.mock.calls[0][0].data;
+    const calls = createMock.mock.calls as unknown as { data: Record<string, unknown> }[][];
+    const dataArg = calls[0]![0]!.data;
     expect(dataArg).toEqual({
       nome: "Shampoo 1L",
       categoria: "Revenda",
