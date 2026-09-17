@@ -11,6 +11,8 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/sessao", () => ({
   PAPEL_DONO: "DONO",
   PAPEL_BALCAO: "BALCAO",
+  PAPEL_PROFISSIONAL: "PROFISSIONAL",
+  ERRO_SOMENTE_LEITURA: "Sua conta tem acesso somente leitura à agenda.",
   exigirSessao: async () => ({ usuarioId: "u1", usuario: "x", papel: PAPEL }),
 }));
 
@@ -100,5 +102,15 @@ describe("registrarMovimento — guarda assimétrica e atomicidade (Story 5.1...
       where: { id: "prod1" },
       data: { estoqueAtual: { decrement: 3 } },
     });
+  });
+
+  it("PROFISSIONAL tentando SAIDA → rejeitado, sem transação (Story 6.2, QA fix)", async () => {
+    PAPEL = "PROFISSIONAL";
+    const r = await registrarMovimento({ ok: false }, fd({ ...base, tipo: "SAIDA" }));
+    expect(r).toEqual({
+      ok: false,
+      erro: "Sua conta tem acesso somente leitura à agenda.",
+    });
+    expect(transactionMock).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
+import { exigirSessao, PAPEL_DONO, PAPEL_PROFISSIONAL, ERRO_SOMENTE_LEITURA } from "@/lib/sessao";
 
 export type MovimentoResult = { ok: boolean; erro?: string };
 
@@ -13,6 +13,7 @@ export async function registrarMovimento(
   formData: FormData,
 ): Promise<MovimentoResult> {
   const { papel } = await exigirSessao();
+  if (papel === PAPEL_PROFISSIONAL) return { ok: false, erro: ERRO_SOMENTE_LEITURA };
   const produtoId = String(formData.get("produtoId") ?? "").trim();
   const tipo = String(formData.get("tipo") ?? "");
   const quantidadeBruta = String(formData.get("quantidade") ?? "").trim();
