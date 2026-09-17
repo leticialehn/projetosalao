@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { exigirSessao } from "@/lib/sessao";
+import { exigirSessao, PAPEL_PROFISSIONAL, ERRO_SOMENTE_LEITURA } from "@/lib/sessao";
 import {
   reais,
   somarPagamentos,
@@ -38,7 +38,8 @@ export async function concluirAtendimento(
   _prev: ConcluirResult,
   formData: FormData,
 ): Promise<ConcluirResult> {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel === PAPEL_PROFISSIONAL) return { ok: false, erro: ERRO_SOMENTE_LEITURA };
   const agendamentoId = String(formData.get("agendamentoId") ?? "");
   const cortesia = formData.get("cortesia") === "on";
   const valorCobradoRaw = Number(

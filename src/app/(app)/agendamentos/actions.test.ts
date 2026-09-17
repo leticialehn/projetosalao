@@ -9,12 +9,23 @@ const profissionalFindUniqueMock = vi.fn(async () => ({
   servicos: [] as { id: string }[],
 }));
 const agendamentoFindFirstMock = vi.fn(async () => null);
+const agendamentoFindUniqueMock = vi.fn(async () => ({
+  id: "ag1",
+  status: "AGENDADO",
+  servico: { duracaoMin: 30 },
+}));
 const agendamentoCreateMock = vi.fn(async () => ({ id: "ag1" }));
+const agendamentoUpdateMock = vi.fn(async () => ({}));
+const agendamentoDeleteMock = vi.fn(async () => ({}));
+
+let PAPEL = "DONO";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/sessao", () => ({
-  exigirSessao: async () => ({ usuarioId: "u1", usuario: "x", papel: "DONO" }),
+  PAPEL_PROFISSIONAL: "PROFISSIONAL",
+  ERRO_SOMENTE_LEITURA: "Sua conta tem acesso somente leitura à agenda.",
+  exigirSessao: async () => ({ usuarioId: "u1", usuario: "x", papel: PAPEL }),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -23,14 +34,18 @@ vi.mock("@/lib/prisma", () => ({
     profissional: { findUnique: profissionalFindUniqueMock },
     agendamento: {
       findFirst: agendamentoFindFirstMock,
+      findUnique: agendamentoFindUniqueMock,
       create: agendamentoCreateMock,
+      update: agendamentoUpdateMock,
+      delete: agendamentoDeleteMock,
     },
   },
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
-const { criarAgendamento } = await import("./actions");
+const { criarAgendamento, remarcarAgendamento, mudarStatus, excluirAgendamento } =
+  await import("./actions");
 
 const fd = (o: Record<string, string>) => {
   const f = new FormData();
@@ -39,8 +54,11 @@ const fd = (o: Record<string, string>) => {
 };
 
 beforeEach(() => {
+  PAPEL = "DONO";
   profissionalFindUniqueMock.mockClear();
   agendamentoCreateMock.mockClear();
+  agendamentoUpdateMock.mockClear();
+  agendamentoDeleteMock.mockClear();
   profissionalFindUniqueMock.mockImplementation(async () => ({
     id: "prof1",
     servicos: [],
@@ -83,5 +101,42 @@ describe("criarAgendamento — vínculo profissional/serviço (Story 5.1)", () =
     const r = await criarAgendamento({ ok: false }, fd(dadosBase));
     expect(r).toEqual({ ok: true });
     expect(agendamentoCreateMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("PROFISSIONAL — somente leitura na agenda (Story 6.2, QA fix)", () => {
+  it("criarAgendamento rejeitado, nenhuma escrita", async () => {
+    PAPEL = "PROFISSIONAL";
+    const r = await criarAgendamento({ ok: false }, fd(dadosBase));
+    expect(r).toEqual({
+      ok: false,
+      erro: "Sua conta tem acesso somente leitura à agenda.",
+    });
+    expect(agendamentoCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("remarcarAgendamento rejeitado, nenhuma escrita", async () => {
+    PAPEL = "PROFISSIONAL";
+    const r = await remarcarAgendamento(
+      { ok: false },
+      fd({ id: "ag1", inicio: "2026-09-20T10:00", profissionalId: "prof1" }),
+    );
+    expect(r).toEqual({
+      ok: false,
+      erro: "Sua conta tem acesso somente leitura à agenda.",
+    });
+    expect(agendamentoUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("mudarStatus rejeitado, nenhuma escrita", async () => {
+    PAPEL = "PROFISSIONAL";
+    await mudarStatus(fd({ id: "ag1", status: "CANCELADO" }));
+    expect(agendamentoUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("excluirAgendamento rejeitado, nenhuma escrita", async () => {
+    PAPEL = "PROFISSIONAL";
+    await excluirAgendamento(fd({ id: "ag1" }));
+    expect(agendamentoDeleteMock).not.toHaveBeenCalled();
   });
 });

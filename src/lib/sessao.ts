@@ -60,6 +60,9 @@ export const PAPEL_PROFISSIONAL = "PROFISSIONAL";
 /** Mensagem padrão para ação negada por papel. */
 export const ERRO_SEM_PERMISSAO = "Ação permitida apenas para o dono.";
 
+/** Story 6.2 — PROFISSIONAL é somente leitura na agenda; nenhuma escrita. */
+export const ERRO_SOMENTE_LEITURA = "Sua conta tem acesso somente leitura à agenda.";
+
 /**
  * Guarda de rota por papel (para `page.tsx` de Server Component). Exige sessão
  * e, se o papel não estiver na lista, redireciona para `/` (o usuário está

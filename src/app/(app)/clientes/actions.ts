@@ -2,10 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
+import { exigirSessao, PAPEL_DONO, PAPEL_PROFISSIONAL } from "@/lib/sessao";
 
 export async function criarCliente(formData: FormData) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel === PAPEL_PROFISSIONAL) return;
   const nome = String(formData.get("nome") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim() || null;
   const email = String(formData.get("email") ?? "").trim() || null;
@@ -17,7 +18,8 @@ export async function criarCliente(formData: FormData) {
 }
 
 export async function atualizarCliente(formData: FormData) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel === PAPEL_PROFISSIONAL) return;
   const id = String(formData.get("id"));
   const nome = String(formData.get("nome") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim() || null;
@@ -39,7 +41,8 @@ export async function atualizarObservacoesCliente({
   id: string;
   observacoes: string;
 }) {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel === PAPEL_PROFISSIONAL) return;
   if (!id) return;
   const texto = observacoes.trim() || null;
 

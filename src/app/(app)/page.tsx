@@ -102,6 +102,7 @@ export default async function AgendaPage({
                 id: x.id,
                 nome: x.nome,
               }))}
+              somenteLeitura={ehProfissional}
             />
           ))}
         </div>
@@ -177,6 +178,7 @@ function ColunaDia({
   indice,
   agendamentos,
   profissionais,
+  somenteLeitura = false,
 }: {
   dia: Date;
   profId: string;
@@ -184,6 +186,7 @@ function ColunaDia({
   indice: number;
   agendamentos: AgItem[];
   profissionais: { id: string; nome: string }[];
+  somenteLeitura?: boolean;
 }) {
   const base = inicioDoDia(dia);
   const slots: Date[] = [];
@@ -218,21 +221,31 @@ function ColunaDia({
                 <span className={`badge ${ocupa.status}`}>
                   {STATUS_LABEL[ocupa.status]}
                 </span>
-                <AgendaAcoes
-                  id={ocupa.id}
-                  status={ocupa.status}
-                  inicio={ocupa.inicio.toISOString()}
-                  profissionalId={ocupa.profissionalId}
-                  servicoNome={ocupa.servico.nome}
-                  servicoPreco={ocupa.servico.preco}
-                  clienteNome={ocupa.cliente.nome}
-                  profissionais={profissionais}
-                />
+                {!somenteLeitura && (
+                  <AgendaAcoes
+                    id={ocupa.id}
+                    status={ocupa.status}
+                    inicio={ocupa.inicio.toISOString()}
+                    profissionalId={ocupa.profissionalId}
+                    servicoNome={ocupa.servico.nome}
+                    servicoPreco={ocupa.servico.preco}
+                    clienteNome={ocupa.cliente.nome}
+                    profissionais={profissionais}
+                  />
+                )}
               </span>
             </div>
           );
         }
         if (ocupa) return null; // continuação de um agendamento anterior
+        if (somenteLeitura) {
+          return (
+            <div className="slot livre" key={s.toISOString()}>
+              <span>{hora(s)}</span>
+              <span>livre</span>
+            </div>
+          );
+        }
         return (
           <Link
             key={s.toISOString()}

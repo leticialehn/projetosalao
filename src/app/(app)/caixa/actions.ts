@@ -2,7 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { exigirSessao, PAPEL_DONO, ERRO_SEM_PERMISSAO } from "@/lib/sessao";
+import {
+  exigirSessao,
+  PAPEL_DONO,
+  PAPEL_PROFISSIONAL,
+  ERRO_SEM_PERMISSAO,
+  ERRO_SOMENTE_LEITURA,
+} from "@/lib/sessao";
 import { inicioDoDia, inicioDoDiaSeguinte, parseDataParam } from "@/lib/datas";
 import {
   resumoCaixaComTaxas,
@@ -29,7 +35,8 @@ export async function fecharCaixa(
   data: string,
   observacoes?: string,
 ): Promise<CaixaResult> {
-  await exigirSessao();
+  const { papel } = await exigirSessao();
+  if (papel === PAPEL_PROFISSIONAL) return { ok: false, erro: ERRO_SOMENTE_LEITURA };
   const janela = janelaDoDia(data);
   if (!janela) return { ok: false, erro: "Data inválida." };
   const { de, ate } = janela;
