@@ -156,7 +156,11 @@ export async function excluirProfissional(formData: FormData) {
   if (papel !== PAPEL_DONO) return;
   const id = String(formData.get("id"));
   const emUso = await prisma.agendamento.count({ where: { profissionalId: id } });
-  if (emUso > 0) {
+  // Um profissional com login vinculado (Story 6.1) não pode ser excluído
+  // fisicamente — onDelete: Restrict na relação Usuario.profissionalId
+  // rejeitaria a query no banco; inativamos antes de chegar lá.
+  const temUsuario = await prisma.usuario.count({ where: { profissionalId: id } });
+  if (emUso > 0 || temUsuario > 0) {
     await prisma.profissional.update({ where: { id }, data: { ativo: false } });
   } else {
     await prisma.profissional.delete({ where: { id } });

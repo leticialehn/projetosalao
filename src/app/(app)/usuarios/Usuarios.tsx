@@ -16,20 +16,30 @@ type Usuario = {
   usuario: string;
   papel: string;
   criadoEm: string;
+  profissionalNome: string | null;
 };
 
-const LABEL: Record<string, string> = { DONO: "Dono", BALCAO: "Balcão" };
+const LABEL: Record<string, string> = {
+  DONO: "Dono",
+  BALCAO: "Balcão",
+  PROFISSIONAL: "Profissional",
+};
+
+type ProfissionalOpcao = { id: string; nome: string };
 
 export default function Usuarios({
   usuarios,
   usuarioAtualId,
   totalDonos,
+  profissionaisDisponiveis,
 }: {
   usuarios: Usuario[];
   usuarioAtualId: string;
   totalDonos: number;
+  profissionaisDisponiveis: ProfissionalOpcao[];
 }) {
   const [novoState, novoAction] = useActionState(criarUsuario, inicial);
+  const [papelNovo, setPapelNovo] = useState("BALCAO");
 
   return (
     <>
@@ -49,15 +59,49 @@ export default function Usuarios({
           <div className="form-row">
             <div className="field">
               <label>Papel</label>
-              <select name="papel" defaultValue="BALCAO">
+              <select
+                name="papel"
+                defaultValue="BALCAO"
+                onChange={(e) => setPapelNovo(e.target.value)}
+              >
                 <option value="BALCAO">Balcão</option>
                 <option value="DONO">Dono</option>
+                <option value="PROFISSIONAL">Profissional</option>
               </select>
             </div>
-            <div className="field" style={{ display: "flex", alignItems: "flex-end" }}>
-              <button type="submit">Adicionar</button>
-            </div>
+            {papelNovo === "PROFISSIONAL" ? (
+              <div className="field">
+                <label>Profissional</label>
+                {profissionaisDisponiveis.length === 0 ? (
+                  <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                    Nenhum profissional ativo disponível para vincular.
+                  </p>
+                ) : (
+                  <select name="profissionalId" defaultValue="">
+                    <option value="" disabled>
+                      Selecione
+                    </option>
+                    {profissionaisDisponiveis.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ) : (
+              <div className="field" style={{ display: "flex", alignItems: "flex-end" }}>
+                <button type="submit">Adicionar</button>
+              </div>
+            )}
           </div>
+          {papelNovo === "PROFISSIONAL" && (
+            <div className="row-actions" style={{ marginTop: 8 }}>
+              <button type="submit" disabled={profissionaisDisponiveis.length === 0}>
+                Adicionar
+              </button>
+            </div>
+          )}
           {novoState.erro && (
             <p style={{ color: "var(--danger)", margin: 0 }}>{novoState.erro}</p>
           )}
@@ -122,6 +166,9 @@ function LinhaUsuario({
           <span className={`badge ${u.papel === "DONO" ? "CONCLUIDO" : "AGENDADO"}`}>
             {LABEL[u.papel] ?? u.papel}
           </span>
+          {u.profissionalNome && (
+            <span className="muted"> — {u.profissionalNome}</span>
+          )}
         </td>
         <td className="muted">{u.criadoEm}</td>
         <td>
