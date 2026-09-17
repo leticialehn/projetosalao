@@ -12,11 +12,21 @@ export async function lerSessao() {
   return getIronSession<DadosSessao>(await cookies(), opcoesSessao());
 }
 
-export async function criarSessao(dados: Required<DadosSessao>) {
+type SessaoAutenticada = {
+  usuarioId: string;
+  usuario: string;
+  papel: string;
+  /** Só presente pra papel PROFISSIONAL — não usar Required<DadosSessao>,
+   * que forçaria este campo em todo login (Story 6.2). */
+  profissionalId?: string;
+};
+
+export async function criarSessao(dados: SessaoAutenticada) {
   const sessao = await lerSessao();
   sessao.usuarioId = dados.usuarioId;
   sessao.usuario = dados.usuario;
   sessao.papel = dados.papel;
+  sessao.profissionalId = dados.profissionalId;
   await sessao.save();
 }
 
@@ -32,13 +42,14 @@ export async function destruirSessao() {
  * contornável — CVE-2025-29927; a guarda de layout roda no re-render, depois
  * da mutação). Sem sessão → redirect para /login (a action não continua).
  */
-export async function exigirSessao(): Promise<Required<DadosSessao>> {
+export async function exigirSessao(): Promise<SessaoAutenticada> {
   const sessao = await lerSessao();
   if (!sessao.usuarioId) redirect("/login");
   return {
     usuarioId: sessao.usuarioId,
     usuario: sessao.usuario ?? "",
     papel: sessao.papel ?? "",
+    profissionalId: sessao.profissionalId,
   };
 }
 
@@ -56,7 +67,7 @@ export const ERRO_SEM_PERMISSAO = "Ação permitida apenas para o dono.";
  */
 export async function exigirPapel(
   ...papeis: string[]
-): Promise<Required<DadosSessao>> {
+): Promise<SessaoAutenticada> {
   const sessao = await exigirSessao();
   if (!papeis.includes(sessao.papel)) redirect("/");
   return sessao;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 import { criarCliente } from "./actions";
 import ClienteRow from "./ClienteRow";
 
@@ -11,7 +11,7 @@ export default async function ClientesPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
   const podeExcluir = sessao.papel === PAPEL_DONO;
   const { q } = await searchParams;
   const busca = (q ?? "").trim();

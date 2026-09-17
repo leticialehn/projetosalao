@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { exigirSessao, PAPEL_DONO } from "@/lib/sessao";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 import { brl, hora, dia as diaExtenso, FORMA_PAGAMENTO_LABEL } from "@/lib/format";
 import {
   inicioDoDia,
@@ -34,7 +34,7 @@ export default async function CaixaPage({
 }: {
   searchParams: Promise<{ data?: string }>;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
   const podeReabrir = sessao.papel === PAPEL_DONO;
   const { data: dataParam } = await searchParams;
   const referencia = parseDataParam(dataParam) ?? new Date();

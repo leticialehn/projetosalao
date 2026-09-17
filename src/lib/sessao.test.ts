@@ -41,7 +41,20 @@ describe("exigirSessao", () => {
     const s = await exigirSessao();
     expect(s.usuarioId).toBe("u1");
     expect(s.papel).toBe("DONO");
+    expect(s.profissionalId).toBeUndefined();
     expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("papel PROFISSIONAL → profissionalId vai e volta pela sessão (Story 6.2)", async () => {
+    await criarSessao({
+      usuarioId: "u2",
+      usuario: "ana",
+      papel: "PROFISSIONAL",
+      profissionalId: "prof1",
+    });
+    const s = await exigirSessao();
+    expect(s.papel).toBe("PROFISSIONAL");
+    expect(s.profissionalId).toBe("prof1");
   });
 
   it("cookie de sessão adulterado → tratado como sem sessão", async () => {

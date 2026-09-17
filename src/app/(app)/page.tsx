@@ -8,6 +8,7 @@ import {
   inicioDaSemanaSeguinte,
   toDateParam,
 } from "@/lib/datas";
+import { exigirSessao, PAPEL_PROFISSIONAL } from "@/lib/sessao";
 import AgendaControles from "./AgendaControles";
 import AgendaAcoes from "./AgendaAcoes";
 import Link from "next/link";
@@ -25,10 +26,28 @@ export default async function AgendaPage({
 }: {
   searchParams: Promise<SP>;
 }) {
+  const sessao = await exigirSessao();
+  const ehProfissional = sessao.papel === PAPEL_PROFISSIONAL;
+
+  if (ehProfissional && !sessao.profissionalId) {
+    return (
+      <>
+        <h1>Agenda</h1>
+        <div className="empty">
+          Sua conta não está vinculada a nenhum profissional. Fale com o dono.
+        </div>
+      </>
+    );
+  }
+
   const sp = await searchParams;
   const ref = parseDataParam(sp.data) ?? inicioDoDia(new Date());
   const modo = sp.modo === "semana" ? "semana" : "dia";
-  const prof = sp.prof && sp.prof !== "todos" ? sp.prof : "todos";
+  const prof = ehProfissional
+    ? sessao.profissionalId!
+    : sp.prof && sp.prof !== "todos"
+      ? sp.prof
+      : "todos";
 
   const de = modo === "semana" ? inicioDaSemana(ref) : inicioDoDia(ref);
   const ate =
@@ -64,6 +83,7 @@ export default async function AgendaPage({
         modo={modo}
         prof={prof}
         profissionais={profissionais.map((p) => ({ id: p.id, nome: p.nome }))}
+        mostrarFiltroProfissional={!ehProfissional}
       />
 
       {modo === "dia" ? (

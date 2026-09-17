@@ -4,6 +4,7 @@ import { excluirAgendamento } from "./actions";
 import NovoAgendamento from "./NovoAgendamento";
 import AgendaAcoes from "../AgendaAcoes";
 import DeleteButton from "@/components/DeleteButton";
+import { exigirPapel, PAPEL_DONO, PAPEL_BALCAO } from "@/lib/sessao";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function AgendamentosPage({
     clienteId?: string;
   }>;
 }) {
+  await exigirPapel(PAPEL_DONO, PAPEL_BALCAO);
   const {
     filtro = "proximos",
     inicio,

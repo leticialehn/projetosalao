@@ -52,6 +52,7 @@ export async function entrar(
     usuarioId: registro.id,
     usuario: registro.usuario,
     papel: registro.papel,
+    profissionalId: registro.profissionalId ?? undefined,
   });
   redirect("/");
 }
