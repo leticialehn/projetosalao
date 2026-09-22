@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { horariosDisponiveis } from "@/lib/agenda";
-import { parseDataParam, toDateParam } from "@/lib/datas";
+import { parseDataParam, toDateParam, formatarDataHora } from "@/lib/datas";
 import AgendarConfirmar from "./AgendarConfirmar";
 
 export const dynamic = "force-dynamic";
@@ -210,10 +210,7 @@ async function PassoConfirmar({
     );
   }
 
-  const dataHoraLabel = new Date(inicio).toLocaleString("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  const dataHoraLabel = formatarDataHora(new Date(inicio));
 
   return (
     <AgendarConfirmar

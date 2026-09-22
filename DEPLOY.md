@@ -32,6 +32,9 @@ Aba **Variables**, adicione:
 | `SESSION_TTL_HOURS` | `12` (opcional) |
 | `ADMIN_USER` | o login do dono, ex.: `dono` |
 | `ADMIN_PASSWORD` | a senha do dono (≥ 8 caracteres) — **use uma senha forte** |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | opcionais — confirmação/lembrete por e-mail (Story 8.2). Sem elas, o app funciona normalmente, só sem enviar e-mail |
+| `LEMBRETES_CRON_SECRET` | opcional — segredo do endpoint `/api/lembretes` (ver 3c abaixo). Sem ele, a rota fica desativada (503) |
+| `LEMBRETE_ANTECEDENCIA_MIN` | opcional — antecedência do lembrete em minutos (default `1440` = 24h) |
 
 > **Não** defina `NODE_ENV` — o `next start` já roda em modo produção sozinho, e forçar
 > `NODE_ENV=production` no build faria o Railway pular dependências necessárias.
@@ -41,6 +44,21 @@ Aba **Variables**, adicione:
    `ADMIN_USER`/`ADMIN_PASSWORD` se ainda não existir, e sobe o servidor.
 5. Aba **Settings → Networking → Generate Domain** para pegar a URL pública
    (`https://projetosalao-production.up.railway.app`).
+
+### 3c. Cron Job de lembretes (opcional, Story 8.2)
+
+Só necessário se você configurou `SMTP_*`/`LEMBRETES_CRON_SECRET` e quer lembretes
+automáticos por e-mail antes do horário (confirmação já sai sozinha na hora do
+agendamento, sem precisar de cron):
+
+1. No painel do Railway, adicione um **Cron Job** (ou um serviço agendado, dependendo
+   do plano) que faça uma chamada HTTP periódica (sugestão: a cada hora):
+   ```
+   GET https://<seu-domínio>/api/lembretes
+   Authorization: Bearer <mesmo valor de LEMBRETES_CRON_SECRET>
+   ```
+2. Sem essa chamada configurada, os agendamentos continuam sendo criados e
+   confirmados normalmente — só o lembrete de véspera não é enviado.
 
 ## Primeiro acesso
 

@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { temConflito } from "@/lib/agenda";
+import { formatarDataHora } from "@/lib/datas";
+import { enviarEmail, emailConfirmacao } from "@/lib/email";
 import {
   segundosDeEspera,
   registrarFalha,
@@ -106,6 +108,22 @@ export async function criarAgendamentoPublico(
   });
 
   limparTentativas(ip);
+
+  // Confirmação por e-mail (Story 8.2) — best-effort: falha aqui nunca
+  // desfaz nem afeta o resultado do agendamento já gravado (NFR21).
+  const emailDestino = email || cliente.email;
+  if (emailDestino) {
+    await enviarEmail({
+      to: emailDestino,
+      ...emailConfirmacao({
+        nome,
+        servicoNome: servico.nome,
+        profissionalNome: profissional.nome,
+        dataHoraLabel: formatarDataHora(inicio),
+      }),
+    });
+  }
+
   revalidatePath("/agendamentos");
   revalidatePath("/");
   revalidatePath("/painel");

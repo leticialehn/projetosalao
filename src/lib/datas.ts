@@ -83,3 +83,8 @@ export function toDateParam(d: Date): string {
   const dia = String(d.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
+
+/** Formata um `Date` como data + hora curta em pt-BR (ex.: "20/09/2026 14:30"). */
+export function formatarDataHora(d: Date): string {
+  return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}

@@ -59,6 +59,8 @@ model Agendamento {
   status         String   @default("AGENDADO") // AGENDADO | CONCLUIDO | CANCELADO | FALTOU
   valorCobrado   Float?
   observacoes    String?
+  // Lembrete por e-mail (Story 8.2) — nulo = ainda não enviado / não elegível.
+  lembreteEnviadoEm DateTime?
   criadoEm       DateTime @default(now())
 
   cliente        Cliente      @relation(fields: [clienteId], references: [id])
