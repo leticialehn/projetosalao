@@ -25,6 +25,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Tudo, exceto: /login, rotas internas do Next, assets e favicon.
-  matcher: ["/((?!login|_next/static|_next/image|favicon.ico).*)"],
+  // Tudo, exceto: /login, /agendar (agendamento público — Story 8.1), rotas
+  // internas do Next, assets e favicon.
+  matcher: ["/((?!login|agendar|_next/static|_next/image|favicon.ico).*)"],
 };
