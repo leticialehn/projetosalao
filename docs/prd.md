@@ -30,6 +30,7 @@ ficam explicitamente para a fase 2.
 |------------|---------|--------------------------------------|---------------|
 | 2026-09-09 | 0.1     | Draft inicial a partir do brief      | Morgan (@pm)  |
 | 2026-09-10 | 0.2     | Epic 2 (segurança + refino financeiro), FR15–FR22, NFR10–NFR13 | Morgan (@pm) |
+| 2026-09-18 | 0.3     | Epic 8 (agendamento online + lembretes), FR34–FR38, NFR20–NFR22 | Morgan (@pm) |
 
 ## Requirements
 
@@ -133,6 +134,7 @@ documentados nas stories. E2E fora de escopo no MVP.
 - **Epic 3 — Controle de estoque:** cadastro de produtos, movimentação manual e alerta de estoque baixo. **(Done — 2026-09-16, QA 3 PASS)**
 - **Epic 6 — Acesso do profissional:** novo papel `PROFISSIONAL`, vínculo com o cadastro de profissional existente, agenda individual responsiva para uso no celular. **(Done — 2026-09-17, stories 6.1–6.2)**
 - **Epic 7 — Metas & Performance:** metas de faturamento/comissão (salão e por profissional), ranking do período e notificações individualizadas de incentivo. Depende do Epic 6 para a parte de notificação individual. **(Done — 2026-09-17, stories 7.1–7.3, QA gate PASS)**
+- **Epic 8 — Agendamento online e lembretes:** cliente cria o próprio agendamento por um link público, e recebe lembrete automático antes do horário (e-mail primeiro, WhatsApp oficial como incremento). Depende do Epic 1 (modelo de Agendamento e checagem de conflito). **(Draft — 2026-09-18, Morgan @pm)**
 
 Epic único por decisão de escopo (2026-09-09): as cinco áreas se sustentam mutuamente
 (caixa depende de valor cobrado, comissão depende de caixa, painel depende de ambos) e o valor
@@ -588,6 +590,61 @@ com custo de API externa), badges/gamificação, recompensas automáticas atrela
 | 7.1 | Modelo de meta + tela do dono para definir metas | Epic 1 | Alta — base para as demais |
 | 7.2 | Acompanhamento de progresso + ranking do período | 7.1 | Alta |
 | 7.3 | Notificações (meta batida pública + incentivo individual) | 7.1, 7.2, **Epic 6** | Média |
+
+## Epic 8 — Agendamento online e lembretes
+
+**Status:** Draft (2026-09-18, Morgan @pm). Depende do Epic 1 (modelo de `Agendamento` e checagem de
+conflito de horário já existentes). Fecha o último item da lista original de fase 3 do brief
+("agendamento online / WhatsApp"), deixado de fora do Epic 2 por decisão explícita na época.
+
+**Objetivo:** o cliente cria o próprio agendamento por um link público, sem precisar ligar ou passar
+no balcão, e recebe um lembrete automático antes do horário — reduzindo falta (no-show) e trabalho
+manual do balcão. O canal de lembrete começa por e-mail (sem custo, sem dependência externa paga) e
+o WhatsApp entra como incremento opcional via API oficial da Meta.
+
+### Escopo desta primeira fatia
+
+Fora de escopo nesta fatia: SMS (tipicamente pago por mensagem, sem tier gratuito viável), qualquer
+biblioteca não-oficial de WhatsApp (ex. Baileys/whatsapp-web.js — viola os Termos de Serviço do
+WhatsApp e arrisca banimento do número), cancelamento/remarcação pelo próprio cliente (o agendamento
+online cria, mas mudanças continuam pelo balcão — Story 1.5), pagamento antecipado/sinal.
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR34:** Existe uma página pública (sem exigir login) onde o cliente escolhe serviço, profissional
+  (ou "qualquer um disponível") e um horário livre, e confirma o agendamento informando nome, telefone
+  e e-mail.
+- **FR35:** O agendamento criado pela página pública usa a mesma checagem de conflito e as mesmas
+  regras de disponibilidade (serviço × profissional, Story 5.1) já usadas no agendamento feito pelo
+  balcão — nenhuma regra de negócio duplicada.
+- **FR36:** Um agendamento criado online entra com status `AGENDADO`, idêntico ao criado pelo balcão;
+  nenhum campo ou fluxo downstream (conclusão, pagamento, comissão) precisa saber a origem do
+  agendamento.
+- **FR37:** O sistema envia um e-mail de confirmação no momento da criação e um lembrete automático
+  um intervalo configurável antes do horário (ex.: 24h), para agendamentos que tenham e-mail
+  cadastrado.
+- **FR38:** Quando um número de WhatsApp Business (Cloud API, Meta oficial) estiver configurado, o
+  lembrete também é enviado por WhatsApp usando um template aprovado; na ausência de configuração,
+  o sistema opera normalmente só com e-mail (degradação graciosa, sem erro visível ao cliente).
+
+#### Non Functional
+
+- **NFR20:** Nenhuma migração destrutiva; a página pública reusa os modelos existentes (`Cliente`,
+  `Agendamento`) sem novos campos obrigatórios além dos já presentes (`Cliente.email` já existe).
+- **NFR21:** O envio de lembretes (e-mail e WhatsApp) é assíncrono/best-effort — uma falha de envio
+  nunca impede ou desfaz a criação do agendamento.
+- **NFR22:** Nenhuma credencial de e-mail ou da API do WhatsApp é commitada no repositório; configuração
+  via variáveis de ambiente, com o recurso desativado (não quebrado) quando ausente.
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 8.1 | Página pública de agendamento (serviço, profissional, horário, dados do cliente) | Epic 1 | Alta — base para as demais |
+| 8.2 | Lembrete por e-mail (confirmação + lembrete antes do horário) | 8.1 | Alta |
+| 8.3 | Lembrete por WhatsApp (Cloud API oficial, template aprovado) | 8.1, 8.2 | Baixa — incremento opcional |
 
 ## Next Steps
 
