@@ -13,13 +13,19 @@ const profissionalFindUniqueMock = vi.fn(async () => ({
 }));
 const agendamentoFindFirstMock = vi.fn(async (): Promise<{ id: string } | null> => null);
 const agendamentoCreateMock = vi.fn(async () => ({ id: "ag1" }));
-const clienteFindFirstMock = vi.fn(async () => null as { id: string } | null);
-const clienteCreateMock = vi.fn(async () => ({ id: "cli-novo" }));
+const clienteFindFirstMock = vi.fn(async () => null as { id: string; email?: string | null } | null);
+const clienteCreateMock = vi.fn(async () => ({ id: "cli-novo", email: "cliente@teste.com" }));
+const enviarEmailMock = vi.fn(async () => true);
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("next/headers", () => ({
   headers: async () => new Map([["x-forwarded-for", "1.2.3.4"]]),
+}));
+
+vi.mock("@/lib/email", () => ({
+  enviarEmail: enviarEmailMock,
+  emailConfirmacao: () => ({ subject: "s", html: "<p>x</p>" }),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -61,6 +67,8 @@ beforeEach(() => {
   agendamentoCreateMock.mockClear();
   clienteFindFirstMock.mockClear();
   clienteCreateMock.mockClear();
+  enviarEmailMock.mockClear();
+  enviarEmailMock.mockImplementation(async () => true);
   profissionalFindUniqueMock.mockImplementation(async () => ({
     id: "prof1",
     ativo: true,
@@ -140,6 +148,20 @@ describe("criarAgendamentoPublico", () => {
       erro: "Esse horário acabou de ser ocupado. Escolha outro horário.",
     });
     expect(agendamentoCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("chama enviarEmail com o e-mail do formulário quando informado", async () => {
+    const r = await criarAgendamentoPublico({ ok: false }, fd(dadosBase));
+    expect(r).toEqual({ ok: true });
+    expect(enviarEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "cliente@teste.com" }),
+    );
+  });
+
+  it("ainda retorna ok:true quando enviarEmail falha (best-effort, não bloqueia)", async () => {
+    enviarEmailMock.mockImplementation(async () => false);
+    const r = await criarAgendamentoPublico({ ok: false }, fd(dadosBase));
+    expect(r).toEqual({ ok: true });
   });
 
   it("rate limit bloqueia após várias falhas seguidas da mesma chave", async () => {
