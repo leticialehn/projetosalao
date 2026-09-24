@@ -26,11 +26,11 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // Tudo, exceto: /login, /agendar (agendamento público — Story 8.1),
-  // /api/lembretes (cron de lembretes — Story 8.2) e /api/alertas-operacionais
-  // (cron de alertas operacionais — Story 10.1) — ambas com autenticação
-  // própria via Bearer secret, não por sessão —, rotas internas do Next,
-  // assets e favicon.
+  // /api/lembretes (cron de lembretes — Story 8.2), /api/retencao (cron de
+  // retenção — Story 9.1) e /api/alertas-operacionais (cron de alertas
+  // operacionais — Story 10.1) — todas com autenticação própria via Bearer
+  // secret, não por sessão —, rotas internas do Next, assets e favicon.
   matcher: [
-    "/((?!login|agendar|api/lembretes|api/alertas-operacionais|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|agendar|api/lembretes|api/retencao|api/alertas-operacionais|_next/static|_next/image|favicon.ico).*)",
   ],
 };

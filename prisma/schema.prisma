@@ -49,6 +49,10 @@ model Cliente {
   email        String?
   observacoes  String?
   criadoEm     DateTime @default(now())
+  // Lembrete de retenção (Story 9.1) — nulo = nunca notificado / não elegível
+  // ainda; marca o ciclo de inatividade já avisado, pra não notificar de novo
+  // até o cliente voltar e sumir uma vez mais.
+  ultimoLembreteRetencaoEm DateTime?
   agendamentos Agendamento[]
 }
 
