@@ -1,8 +1,8 @@
-function configurado(): boolean {
+function configurado(templateName?: string): boolean {
   return Boolean(
     process.env.WHATSAPP_ACCESS_TOKEN &&
       process.env.WHATSAPP_PHONE_NUMBER_ID &&
-      process.env.WHATSAPP_TEMPLATE_NAME,
+      (templateName || process.env.WHATSAPP_TEMPLATE_NAME),
   );
 }
 
@@ -26,18 +26,25 @@ export function normalizarTelefoneBR(telefone: string): string | null {
 export async function enviarWhatsapp({
   to,
   parametros,
+  templateName,
 }: {
   to: string;
   parametros: string[];
+  /** Nome do template aprovado a usar; default `WHATSAPP_TEMPLATE_NAME` (o
+   * template de lembrete de agendamento — Story 8.3). Outras rotas (retenção,
+   * alertas operacionais) passam seu próprio template aqui, já que cada
+   * template da Meta tem um número fixo e diferente de variáveis aprovado. */
+  templateName?: string;
 }): Promise<boolean> {
-  if (!configurado()) return false;
+  const nomeTemplate = templateName || process.env.WHATSAPP_TEMPLATE_NAME;
+  if (!configurado(nomeTemplate)) return false;
 
   const corpo = {
     messaging_product: "whatsapp",
     to,
     type: "template",
     template: {
-      name: process.env.WHATSAPP_TEMPLATE_NAME,
+      name: nomeTemplate,
       language: { code: process.env.WHATSAPP_TEMPLATE_LANG || "pt_BR" },
       components: [
         {

@@ -31,6 +31,7 @@ ficam explicitamente para a fase 2.
 | 2026-09-09 | 0.1     | Draft inicial a partir do brief      | Morgan (@pm)  |
 | 2026-09-10 | 0.2     | Epic 2 (segurança + refino financeiro), FR15–FR22, NFR10–NFR13 | Morgan (@pm) |
 | 2026-09-18 | 0.3     | Epic 8 (agendamento online + lembretes), FR34–FR38, NFR20–NFR22 | Morgan (@pm) |
+| 2026-09-24 | 0.4     | Epics 9–11 (retenção, alertas operacionais, relatórios avançados), FR39–FR44, NFR23–NFR25 | Morgan (@pm) |
 
 ## Requirements
 
@@ -135,6 +136,9 @@ documentados nas stories. E2E fora de escopo no MVP.
 - **Epic 6 — Acesso do profissional:** novo papel `PROFISSIONAL`, vínculo com o cadastro de profissional existente, agenda individual responsiva para uso no celular. **(Done — 2026-09-17, stories 6.1–6.2)**
 - **Epic 7 — Metas & Performance:** metas de faturamento/comissão (salão e por profissional), ranking do período e notificações individualizadas de incentivo. Depende do Epic 6 para a parte de notificação individual. **(Done — 2026-09-17, stories 7.1–7.3, QA gate PASS)**
 - **Epic 8 — Agendamento online e lembretes:** cliente cria o próprio agendamento por um link público, e recebe lembrete automático antes do horário (e-mail primeiro, WhatsApp oficial como incremento). Depende do Epic 1 (modelo de Agendamento e checagem de conflito). **(Done — 2026-09-24, stories 8.1–8.3, QA gate PASS)**
+- **Epic 9 — Retenção de clientes:** identifica clientes inativos (sem visita há N dias configurável, sem agendamento futuro) e envia um lembrete de retorno por e-mail/WhatsApp, reusando a infraestrutura de mensageria do Epic 8. Depende do Epic 8. **(Draft — 2026-09-24, Morgan @pm)**
+- **Epic 10 — Alertas operacionais para o dono:** verificação diária de estoque abaixo do mínimo e caixa do dia anterior não fechado, com resumo enviado ao dono por e-mail/WhatsApp. Depende do Epic 3 (estoque), Epic 1 (caixa) e Epic 8 (mensageria). **(Draft — 2026-09-24, Morgan @pm)**
+- **Epic 11 — Relatórios avançados:** comparação entre o período atual e o anterior equivalente, e exportação em CSV, no relatório de comissões já existente. Depende do Epic 1/2 (cálculo de comissão). **(Draft — 2026-09-24, Morgan @pm)**
 
 Epic único por decisão de escopo (2026-09-09): as cinco áreas se sustentam mutuamente
 (caixa depende de valor cobrado, comissão depende de caixa, painel depende de ambos) e o valor
@@ -645,6 +649,118 @@ online cria, mas mudanças continuam pelo balcão — Story 1.5), pagamento ante
 | 8.1 | Página pública de agendamento (serviço, profissional, horário, dados do cliente) | Epic 1 | Alta — base para as demais |
 | 8.2 | Lembrete por e-mail (confirmação + lembrete antes do horário) | 8.1 | Alta |
 | 8.3 | Lembrete por WhatsApp (Cloud API oficial, template aprovado) | 8.1, 8.2 | Baixa — incremento opcional |
+
+## Epic 9 — Retenção de clientes
+
+**Status:** Draft (2026-09-24, Morgan @pm). Depende do Epic 8 (`src/lib/email.ts`/`src/lib/whatsapp.ts`
+já existem e funcionam) — esta epic é puramente consumidora dessa infraestrutura, sem tocar em SMTP/API
+do WhatsApp de novo.
+
+**Objetivo:** o sistema identifica sozinho clientes que pararam de vir — sem agendamento concluído há
+um número configurável de dias e sem nenhum agendamento futuro já marcado — e envia um lembrete de
+retorno automaticamente, sem trabalho manual do balcão.
+
+### Escopo desta primeira fatia
+
+Fora de escopo: cupom/desconto automático atrelado ao lembrete (é uma decisão comercial do dono, não
+uma automação), segmentação por tipo de serviço (a fatia trata "cliente inativo" de forma genérica),
+qualquer tela de configuração nova — o intervalo de inatividade é uma variável de ambiente, mesmo
+padrão já usado pelo `LEMBRETE_ANTECEDENCIA_MIN` do Epic 8.
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR39:** O sistema identifica clientes cujo agendamento `CONCLUIDO` mais recente foi há mais de
+  `RETENCAO_DIAS_INATIVIDADE` dias (configurável, default 45) **e** que não têm nenhum agendamento
+  `AGENDADO` futuro — clientes sem nenhum `CONCLUIDO` (nunca vieram) não entram nessa fatia.
+- **FR40:** Um lembrete de retorno é enviado por e-mail e/ou WhatsApp, reusando exatamente
+  `enviarEmail`/`enviarWhatsapp` do Epic 8 — mesma degradação graciosa (sem SMTP/WhatsApp configurado,
+  simplesmente não envia, sem erro).
+
+#### Non Functional
+
+- **NFR23:** Migração aditiva (nova coluna em `Cliente` pra marcar o último envio de retenção,
+  evitando reenviar o mesmo cliente a cada execução do cron); nenhuma tabela/coluna existente alterada.
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 9.1 | Identificação de clientes inativos + envio de lembrete de retorno | Epic 8 | Média |
+
+## Epic 10 — Alertas operacionais para o dono
+
+**Status:** Draft (2026-09-24, Morgan @pm). Depende do Epic 3 (estoque), Epic 1 (fechamento de caixa) e
+Epic 8 (mensageria).
+
+**Objetivo:** o dono para de precisar abrir o app todo dia só para checar se algum produto está
+acabando ou se esqueceu de fechar o caixa — o sistema manda um resumo automático.
+
+### Escopo desta primeira fatia
+
+Fora de escopo: alertas em tempo real (é um resumo periódico, não uma notificação instantânea a cada
+evento), qualquer tela de preferências de notificação — o contato do dono é configurado por variável
+de ambiente, mesmo padrão de `ADMIN_USER`/`ADMIN_PASSWORD` do Epic 2.
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR41:** O sistema verifica, periodicamente, produtos ativos com `estoqueAtual` abaixo de
+  `estoqueMinimo` e o fechamento de caixa do dia anterior (se não existir `FechamentoCaixa` para a
+  data de ontem), e envia um resumo ao dono por e-mail/WhatsApp quando houver pelo menos um item a
+  reportar — sem nada a reportar, nenhuma mensagem é enviada (nem vazia).
+
+#### Non Functional
+
+- **NFR24:** O contato do dono (e-mail e/ou telefone) é configurado via variável de ambiente
+  (`DONO_EMAIL`/`DONO_TELEFONE`) — nenhuma tabela ou tela nova para isso, mesmo princípio de
+  configuração mínima já usado pelas credenciais iniciais do dono (Epic 2).
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 10.1 | Resumo diário de estoque baixo + caixa não fechado pro dono | Epic 3, Epic 1, Epic 8 | Média |
+
+## Epic 11 — Relatórios avançados
+
+**Status:** Draft (2026-09-24, Morgan @pm). Depende dos Epics 1/2 (cálculo de comissão já existente em
+`src/lib/financeiro.ts`) — esta epic não adiciona nenhuma lógica financeira nova, só refina a
+visualização do relatório que já existe.
+
+**Objetivo:** o dono consegue comparar o desempenho do período atual com o período equivalente
+anterior direto na tela de comissões, e exportar os números pra planilha quando precisar.
+
+### Escopo desta primeira fatia
+
+Fora de escopo: gráficos/visualizações (é uma comparação numérica, tabular), comparação com períodos
+arbitrários além do "anterior equivalente" (ex.: mesmo mês do ano passado fica para uma fatia futura),
+exportação em outro formato além de CSV (PDF, Excel).
+
+### Requisitos adicionais
+
+#### Functional
+
+- **FR42:** A tela de comissões (`/comissoes`) mostra, ao lado de cada métrica do período selecionado,
+  o valor do período anterior de mesma duração (ex.: mês atual vs. mês anterior; ou, para um período
+  arbitrário de N dias, os N dias imediatamente anteriores) e a variação percentual entre os dois.
+- **FR43:** A mesma tela oferece um link/botão para exportar os dados do período selecionado (mesma
+  granularidade da tabela: por profissional, com quebra por serviço quando houver) em CSV.
+
+#### Non Functional
+
+- **NFR25:** Nenhuma lógica financeira nova é criada — a comparação reusa
+  `comissaoPorProfissionalComServico` (já existente em `src/lib/financeiro.ts`) chamada duas vezes,
+  uma por período; a exportação CSV é gerada a partir dos mesmos dados já calculados para a tela, sem
+  segunda fonte de verdade.
+
+### Sequência das stories
+
+| Ordem | Story | Depende de | Prioridade |
+|-------|-------|-----------|-----------|
+| 11.1 | Comparação com período anterior + exportação CSV no relatório de comissões | Epic 1, Epic 2 | Baixa |
 
 ## Next Steps
 

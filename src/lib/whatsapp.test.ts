@@ -69,6 +69,34 @@ describe("enviarWhatsapp", () => {
     );
   });
 
+  it("usa templateName quando informado, em vez de WHATSAPP_TEMPLATE_NAME", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    Object.assign(process.env, ENV_BASE);
+
+    await enviarWhatsapp({
+      to: "5511999990000",
+      parametros: ["Cliente"],
+      templateName: "template_retencao",
+    });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const corpo = JSON.parse(init.body as string);
+    expect(corpo.template.name).toBe("template_retencao");
+  });
+
+  it("funciona mesmo sem WHATSAPP_TEMPLATE_NAME, se templateName for passado", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    Object.assign(process.env, { ...ENV_BASE, WHATSAPP_TEMPLATE_NAME: "" });
+
+    const ok = await enviarWhatsapp({
+      to: "5511999990000",
+      parametros: ["Cliente"],
+      templateName: "template_retencao",
+    });
+    expect(ok).toBe(true);
+  });
+
   it("retorna false (sem lançar) quando a API responde erro", async () => {
     const fetchMock = vi.fn(
       async () => new Response("erro", { status: 400 }),
