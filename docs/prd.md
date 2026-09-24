@@ -134,7 +134,7 @@ documentados nas stories. E2E fora de escopo no MVP.
 - **Epic 3 — Controle de estoque:** cadastro de produtos, movimentação manual e alerta de estoque baixo. **(Done — 2026-09-16, QA 3 PASS)**
 - **Epic 6 — Acesso do profissional:** novo papel `PROFISSIONAL`, vínculo com o cadastro de profissional existente, agenda individual responsiva para uso no celular. **(Done — 2026-09-17, stories 6.1–6.2)**
 - **Epic 7 — Metas & Performance:** metas de faturamento/comissão (salão e por profissional), ranking do período e notificações individualizadas de incentivo. Depende do Epic 6 para a parte de notificação individual. **(Done — 2026-09-17, stories 7.1–7.3, QA gate PASS)**
-- **Epic 8 — Agendamento online e lembretes:** cliente cria o próprio agendamento por um link público, e recebe lembrete automático antes do horário (e-mail primeiro, WhatsApp oficial como incremento). Depende do Epic 1 (modelo de Agendamento e checagem de conflito). **(Draft — 2026-09-18, Morgan @pm)**
+- **Epic 8 — Agendamento online e lembretes:** cliente cria o próprio agendamento por um link público, e recebe lembrete automático antes do horário (e-mail primeiro, WhatsApp oficial como incremento). Depende do Epic 1 (modelo de Agendamento e checagem de conflito). **(Done — 2026-09-24, stories 8.1–8.3, QA gate PASS)**
 
 Epic único por decisão de escopo (2026-09-09): as cinco áreas se sustentam mutuamente
 (caixa depende de valor cobrado, comissão depende de caixa, painel depende de ambos) e o valor

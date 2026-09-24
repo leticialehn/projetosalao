@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatarDataHora } from "@/lib/datas";
 import { enviarEmail, emailLembrete } from "@/lib/email";
+import { enviarWhatsapp, normalizarTelefoneBR } from "@/lib/whatsapp";
 
 export async function GET(request: Request) {
   const secret = process.env.LEMBRETES_CRON_SECRET;
@@ -33,22 +34,40 @@ export async function GET(request: Request) {
   let pulados = 0;
 
   for (const ag of agendamentos) {
-    if (!ag.cliente.email) {
+    const telefoneWhats = ag.cliente.telefone
+      ? normalizarTelefoneBR(ag.cliente.telefone)
+      : null;
+
+    if (!ag.cliente.email && !telefoneWhats) {
       pulados++;
       continue;
     }
 
-    const ok = await enviarEmail({
-      to: ag.cliente.email,
-      ...emailLembrete({
-        nome: ag.cliente.nome,
-        servicoNome: ag.servico.nome,
-        profissionalNome: ag.profissional.nome,
-        dataHoraLabel: formatarDataHora(ag.inicio),
-      }),
-    });
+    const emailOk = ag.cliente.email
+      ? await enviarEmail({
+          to: ag.cliente.email,
+          ...emailLembrete({
+            nome: ag.cliente.nome,
+            servicoNome: ag.servico.nome,
+            profissionalNome: ag.profissional.nome,
+            dataHoraLabel: formatarDataHora(ag.inicio),
+          }),
+        })
+      : false;
 
-    if (ok) {
+    const whatsappOk = telefoneWhats
+      ? await enviarWhatsapp({
+          to: telefoneWhats,
+          parametros: [
+            ag.cliente.nome,
+            ag.servico.nome,
+            ag.profissional.nome,
+            formatarDataHora(ag.inicio),
+          ],
+        })
+      : false;
+
+    if (emailOk || whatsappOk) {
       await prisma.agendamento.update({
         where: { id: ag.id },
         data: { lembreteEnviadoEm: new Date() },

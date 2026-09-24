@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const findManyMock = vi.fn(async () => [] as unknown[]);
 const updateMock = vi.fn(async () => ({}));
 const enviarEmailMock = vi.fn(async () => true);
+const enviarWhatsappMock = vi.fn(async () => false);
 
 vi.mock("server-only", () => ({}));
 
@@ -15,6 +16,11 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/email", () => ({
   enviarEmail: enviarEmailMock,
   emailLembrete: () => ({ subject: "s", html: "<p>x</p>" }),
+}));
+
+vi.mock("@/lib/whatsapp", () => ({
+  enviarWhatsapp: enviarWhatsappMock,
+  normalizarTelefoneBR: (t: string) => (t ? `55${t}` : null),
 }));
 
 const { GET } = await import("./route");
@@ -40,6 +46,8 @@ beforeEach(() => {
   updateMock.mockClear();
   enviarEmailMock.mockClear();
   enviarEmailMock.mockImplementation(async () => true);
+  enviarWhatsappMock.mockClear();
+  enviarWhatsappMock.mockImplementation(async () => false);
   findManyMock.mockImplementation(async () => []);
 });
 
@@ -94,6 +102,37 @@ describe("GET /api/lembretes", () => {
     const body = await res.json();
     expect(body).toEqual({ enviados: 0, pulados: 0, total: 1 });
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("e-mail falha mas WhatsApp funciona → ainda conta como enviado e grava lembreteEnviadoEm", async () => {
+    process.env.LEMBRETES_CRON_SECRET = "segredo123";
+    enviarEmailMock.mockImplementation(async () => false);
+    enviarWhatsappMock.mockImplementation(async () => true);
+    findManyMock.mockImplementation(async () => [
+      { ...agendamentoBase, cliente: { ...agendamentoBase.cliente, telefone: "11999990000" } },
+    ]);
+    const res = await GET(req("Bearer segredo123"));
+    const body = await res.json();
+    expect(body).toEqual({ enviados: 1, pulados: 0, total: 1 });
+    expect(enviarWhatsappMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "5511999990000" }),
+    );
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: "ag1" },
+      data: { lembreteEnviadoEm: expect.any(Date) },
+    });
+  });
+
+  it("nem e-mail nem telefone disponíveis → conta em pulados, nenhum canal chamado", async () => {
+    process.env.LEMBRETES_CRON_SECRET = "segredo123";
+    findManyMock.mockImplementation(async () => [
+      { ...agendamentoBase, cliente: { nome: "Cliente", email: null, telefone: null } },
+    ]);
+    const res = await GET(req("Bearer segredo123"));
+    const body = await res.json();
+    expect(body).toEqual({ enviados: 0, pulados: 1, total: 1 });
+    expect(enviarEmailMock).not.toHaveBeenCalled();
+    expect(enviarWhatsappMock).not.toHaveBeenCalled();
   });
 
   it("consulta usa a janela de antecedência configurada", async () => {

@@ -35,6 +35,7 @@ Aba **Variables**, adicione:
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | opcionais — confirmação/lembrete por e-mail (Story 8.2). Sem elas, o app funciona normalmente, só sem enviar e-mail |
 | `LEMBRETES_CRON_SECRET` | opcional — segredo do endpoint `/api/lembretes` (ver 3c abaixo). Sem ele, a rota fica desativada (503) |
 | `LEMBRETE_ANTECEDENCIA_MIN` | opcional — antecedência do lembrete em minutos (default `1440` = 24h) |
+| `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` | opcionais — lembrete também por WhatsApp (Story 8.3, ver 3d abaixo). Sem elas, o lembrete sai só por e-mail |
 
 > **Não** defina `NODE_ENV` — o `next start` já roda em modo produção sozinho, e forçar
 > `NODE_ENV=production` no build faria o Railway pular dependências necessárias.
@@ -59,6 +60,22 @@ agendamento, sem precisar de cron):
    ```
 2. Sem essa chamada configurada, os agendamentos continuam sendo criados e
    confirmados normalmente — só o lembrete de véspera não é enviado.
+
+### 3d. WhatsApp (opcional, Story 8.3)
+
+Adiciona o WhatsApp como canal extra do lembrete (o e-mail continua funcionando
+normalmente sem isso):
+
+1. Crie um app no [Meta Business Manager](https://business.facebook.com/) e ative
+   a **WhatsApp Cloud API**.
+2. Pegue o **access token** (permanente, não o temporário de teste) e o
+   **phone number ID** do número configurado.
+3. Crie um **template de mensagem** com exatamente **4 variáveis de corpo**, nesta
+   ordem: nome do cliente, nome do serviço, nome do profissional, data/hora. Aguarde
+   a aprovação da Meta antes de usar o nome do template em produção.
+4. Configure `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e
+   `WHATSAPP_TEMPLATE_NAME` (e `WHATSAPP_TEMPLATE_LANG`, se o template não for
+   `pt_BR`) nas Variables do Railway.
 
 ## Primeiro acesso
 
