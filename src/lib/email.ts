@@ -115,3 +115,30 @@ export function emailLembrete({
     ),
   };
 }
+
+// `produtos` vem de nomes já cadastrados pelo dono (não é entrada de
+// terceiros), mas são escapados do mesmo jeito — defesa em profundidade,
+// custo zero, mesmo padrão das outras funções deste arquivo.
+export function emailAlertasOperacionais({
+  produtos,
+  caixaNaoFechado,
+}: {
+  produtos: string[];
+  caixaNaoFechado: boolean;
+}): { subject: string; html: string } {
+  const partes: string[] = [];
+
+  if (produtos.length > 0) {
+    const lista = produtos.map((p) => escapeHtml(p)).join(", ");
+    partes.push(`Produtos com estoque baixo: <strong>${lista}</strong>.`);
+  }
+
+  if (caixaNaoFechado) {
+    partes.push("O caixa de ontem ainda não foi fechado.");
+  }
+
+  return {
+    subject: "Resumo diário — Seu Salão",
+    html: base("Resumo diário", partes.join("<br /><br />")),
+  };
+}
