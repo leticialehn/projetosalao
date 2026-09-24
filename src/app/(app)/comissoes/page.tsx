@@ -1,43 +1,17 @@
 import { Fragment } from "react";
-import { prisma } from "@/lib/prisma";
 import { exigirPapel, PAPEL_DONO } from "@/lib/sessao";
 import { brl } from "@/lib/format";
 import {
   inicioDoDia,
-  inicioDoDiaSeguinte,
   intervaloMes,
   parseDataParam,
+  periodoAnterior,
   toDateParam,
 } from "@/lib/datas";
-import {
-  comissaoPorProfissionalComServico,
-  type AtendimentoInput,
-  type ComissaoBase,
-  type ConfigTaxa,
-  type FormaPagamento,
-  type RegraComissao,
-} from "@/lib/financeiro";
+import { buscarRelatorioComissoes } from "./relatorio";
+import { variacaoPct, formatarVariacao } from "./variacao";
 
 export const dynamic = "force-dynamic";
-
-type LinhaServico = {
-  servicoId: string;
-  nome: string;
-  qtd: number;
-  totalCobrado: number;
-  comissao: number;
-};
-
-type Linha = {
-  id: string;
-  nome: string;
-  ativo: boolean;
-  qtd: number;
-  totalCobrado: number;
-  percentual: number;
-  comissao: number;
-  porServico: LinhaServico[];
-};
 
 export default async function ComissoesPage({
   searchParams,
@@ -54,122 +28,29 @@ export default async function ComissoesPage({
 
   const periodoInvalido = de.getTime() > ate.getTime();
 
-  // `de > ate`: mostra aviso e não busca/calcula atendimentos.
-  const atendimentosPromise: Promise<
-    {
-      profissionalId: string;
-      servicoId: string;
-      valorCobrado: number | null;
-      pagamentos: { valor: number; formaPagamento: string }[];
-    }[]
-  > = periodoInvalido
-    ? Promise.resolve([])
-    : prisma.agendamento.findMany({
-        where: {
-          status: "CONCLUIDO",
-          valorCobrado: { not: null },
-          // Fim inclusivo: tudo antes da meia-noite do dia seguinte a `ate`.
-          inicio: { gte: de, lt: inicioDoDiaSeguinte(ate) },
-        },
-        select: {
-          profissionalId: true,
-          servicoId: true,
-          valorCobrado: true,
-          pagamentos: { select: { valor: true, formaPagamento: true } },
-        },
-      });
-
-  // Inclui inativos: profissional desligado que atendeu no período ainda
-  // tem comissão a receber (filtrados abaixo se não atenderam).
-  const [atendimentosDb, profissionais, servicos, config, taxasDb] =
-    await Promise.all([
-      atendimentosPromise,
-      prisma.profissional.findMany({
-        include: { comissaoRegras: true },
-        orderBy: { nome: "asc" },
-      }),
-      prisma.servico.findMany({ select: { id: true, nome: true } }),
-      prisma.config.findUnique({ where: { id: "singleton" } }),
-      prisma.taxaPagamento.findMany(),
-    ]);
-
-  const nomeServico = new Map(servicos.map((s) => [s.id, s.nome]));
-
-  const base: ComissaoBase =
-    config?.comissaoBase === "LIQUIDO" ? "LIQUIDO" : "BRUTO";
-  const taxasPorForma: Partial<Record<FormaPagamento, ConfigTaxa>> = {};
-  for (const t of taxasDb) {
-    taxasPorForma[t.formaPagamento as FormaPagamento] = {
-      percentual: t.percentual,
-      valorFixo: t.valorFixo,
-    };
-  }
-
-  const atendimentos: AtendimentoInput[] = atendimentosDb.map((a) => ({
-    profissionalId: a.profissionalId,
-    servicoId: a.servicoId,
-    valorCobrado: a.valorCobrado ?? 0,
-    pagamentos: a.pagamentos.map((p) => ({
-      valor: p.valor,
-      formaPagamento: p.formaPagamento as FormaPagamento,
-    })),
-  }));
-
-  // Fonte canônica do percentual é a ComissaoRegra (não o espelho
-  // `Profissional.comissaoPercentual`). Sem regra → 0.
-  const regrasPorProfissional: Record<string, RegraComissao[]> = {};
-  const percentualGeralPorProfissional: Record<string, number> = {};
-  for (const p of profissionais) {
-    regrasPorProfissional[p.id] = p.comissaoRegras.map((r) => ({
-      servicoId: r.servicoId,
-      percentual: r.percentual,
-    }));
-    percentualGeralPorProfissional[p.id] =
-      p.comissaoRegras.find((r) => r.servicoId === null)?.percentual ?? 0;
-  }
-
-  const agregado = comissaoPorProfissionalComServico(
-    atendimentos,
-    regrasPorProfissional,
-    base,
-    taxasPorForma,
+  const { linhas, base } = await buscarRelatorioComissoes(de, ate);
+  const anterior = periodoAnterior(de, ate);
+  const { linhas: linhasAnterior } = await buscarRelatorioComissoes(
+    anterior.de,
+    anterior.ate,
   );
-
-  // A função pura não inventa profissionais: a linha com zeros para quem
-  // não atendeu é montada aqui, a partir da lista de profissionais.
-  const linhas: Linha[] = profissionais
-    .filter((p) => p.ativo || agregado[p.id] !== undefined)
-    .map((p) => {
-      const a = agregado[p.id];
-      // Quebra por serviço só aparece quando há regra específica (AC4) —
-      // sem regra por serviço, o relatório fica idêntico ao Epic 1.
-      const temRegraPorServico = p.comissaoRegras.some(
-        (r) => r.servicoId !== null,
-      );
-      const porServico: LinhaServico[] = temRegraPorServico
-        ? Object.entries(a?.porServico ?? {}).map(([servicoId, v]) => ({
-            servicoId,
-            nome: nomeServico.get(servicoId) ?? servicoId,
-            qtd: v.qtd,
-            totalCobrado: v.totalCobrado,
-            comissao: v.comissao,
-          }))
-        : [];
-      return {
-        id: p.id,
-        nome: p.nome,
-        ativo: p.ativo,
-        qtd: a?.qtd ?? 0,
-        totalCobrado: a?.totalCobrado ?? 0,
-        percentual: percentualGeralPorProfissional[p.id] ?? 0,
-        comissao: a?.comissao ?? 0,
-        porServico,
-      };
-    });
 
   const totalComissoes = linhas.reduce((acc, l) => acc + l.comissao, 0);
   const totalCobrado = linhas.reduce((acc, l) => acc + l.totalCobrado, 0);
   const totalAtendimentos = linhas.reduce((acc, l) => acc + l.qtd, 0);
+
+  const totalComissoesAnterior = linhasAnterior.reduce(
+    (acc, l) => acc + l.comissao,
+    0,
+  );
+  const totalCobradoAnterior = linhasAnterior.reduce(
+    (acc, l) => acc + l.totalCobrado,
+    0,
+  );
+  const totalAtendimentosAnterior = linhasAnterior.reduce(
+    (acc, l) => acc + l.qtd,
+    0,
+  );
 
   return (
     <>
@@ -203,6 +84,13 @@ export default async function ComissoesPage({
             <button type="submit">Aplicar</button>
           </div>
         </form>
+        <p className="subtitle" style={{ marginBottom: 0 }}>
+          <a
+            href={`/comissoes/export?de=${toDateParam(de)}&ate=${toDateParam(ate)}`}
+          >
+            Exportar CSV
+          </a>
+        </p>
       </div>
 
       {periodoInvalido ? (
@@ -218,14 +106,32 @@ export default async function ComissoesPage({
             <div className="card">
               <div className="stat">{brl(totalComissoes)}</div>
               <div className="stat-label">Total de comissões</div>
+              <div className="subtitle">
+                vs. período anterior:{" "}
+                {formatarVariacao(
+                  variacaoPct(totalComissoes, totalComissoesAnterior),
+                )}
+              </div>
             </div>
             <div className="card">
               <div className="stat">{brl(totalCobrado)}</div>
               <div className="stat-label">Total cobrado</div>
+              <div className="subtitle">
+                vs. período anterior:{" "}
+                {formatarVariacao(
+                  variacaoPct(totalCobrado, totalCobradoAnterior),
+                )}
+              </div>
             </div>
             <div className="card">
               <div className="stat">{totalAtendimentos}</div>
               <div className="stat-label">Atendimentos concluídos</div>
+              <div className="subtitle">
+                vs. período anterior:{" "}
+                {formatarVariacao(
+                  variacaoPct(totalAtendimentos, totalAtendimentosAnterior),
+                )}
+              </div>
             </div>
           </div>
 

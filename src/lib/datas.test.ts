@@ -7,6 +7,7 @@ import {
   parseDataParam,
   inicioDaSemana,
   toDateParam,
+  periodoAnterior,
 } from "./datas";
 
 describe("inicioDoDia / fimDoDia / inicioDoDiaSeguinte", () => {
@@ -101,5 +102,42 @@ describe("toDateParam", () => {
   it("ida e volta com parseDataParam", () => {
     const s = "2026-07-09";
     expect(toDateParam(parseDataParam(s)!)).toBe(s);
+  });
+});
+
+describe("periodoAnterior", () => {
+  it("período de 30 dias → período anterior também de 30 dias, terminando no dia anterior ao início do original", () => {
+    // 01/03/2026 a 30/03/2026 = 30 dias
+    const de = new Date(2026, 2, 1);
+    const ate = new Date(2026, 2, 30);
+    const r = periodoAnterior(de, ate);
+    // Termina no dia anterior ao início do período original.
+    expect(toDateParam(r.ate)).toBe("2026-02-28");
+    // Mesma duração: 30 dias (30/01 a 28/02 = 30 dias, ano não bissexto).
+    expect(toDateParam(r.de)).toBe("2026-01-30");
+    const diasOriginal = Math.round(
+      (inicioDoDiaSeguinte(ate).getTime() - inicioDoDia(de).getTime()) /
+        86400000,
+    );
+    const diasAnterior = Math.round(
+      (inicioDoDiaSeguinte(r.ate).getTime() - inicioDoDia(r.de).getTime()) /
+        86400000,
+    );
+    expect(diasAnterior).toBe(diasOriginal);
+  });
+
+  it("período de 1 dia → período anterior de 1 dia (o dia imediatamente anterior)", () => {
+    const d = new Date(2026, 2, 15);
+    const r = periodoAnterior(d, d);
+    expect(toDateParam(r.de)).toBe("2026-03-14");
+    expect(toDateParam(r.ate)).toBe("2026-03-14");
+  });
+
+  it("não muta as entradas", () => {
+    const de = new Date(2026, 2, 1, 10);
+    const ate = new Date(2026, 2, 30, 10);
+    periodoAnterior(de, ate);
+    expect(de.getDate()).toBe(1);
+    expect(ate.getDate()).toBe(30);
   });
 });

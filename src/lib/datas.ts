@@ -88,3 +88,19 @@ export function toDateParam(d: Date): string {
 export function formatarDataHora(d: Date): string {
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
+
+/**
+ * Período imediatamente anterior a `[de, ate]`, com a mesma duração em dias.
+ * Ex.: período de 30 dias → os 30 dias imediatamente anteriores a `de`.
+ */
+export function periodoAnterior(de: Date, ate: Date): { de: Date; ate: Date } {
+  const dias = Math.round(
+    (inicioDoDiaSeguinte(ate).getTime() - inicioDoDia(de).getTime()) /
+      86400000,
+  );
+  const anteriorAte = inicioDoDia(de);
+  anteriorAte.setDate(anteriorAte.getDate() - 1);
+  const anteriorDe = new Date(anteriorAte);
+  anteriorDe.setDate(anteriorDe.getDate() - (dias - 1));
+  return { de: anteriorDe, ate: anteriorAte };
+}
