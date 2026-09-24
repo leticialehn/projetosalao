@@ -36,6 +36,9 @@ Aba **Variables**, adicione:
 | `LEMBRETES_CRON_SECRET` | opcional — segredo do endpoint `/api/lembretes` (ver 3c abaixo). Sem ele, a rota fica desativada (503) |
 | `LEMBRETE_ANTECEDENCIA_MIN` | opcional — antecedência do lembrete em minutos (default `1440` = 24h) |
 | `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` | opcionais — lembrete também por WhatsApp (Story 8.3, ver 3d abaixo). Sem elas, o lembrete sai só por e-mail |
+| `RETENCAO_CRON_SECRET` | opcional — segredo do endpoint `/api/retencao` (ver 3e abaixo). Sem ele, a rota fica desativada (503) |
+| `RETENCAO_DIAS_INATIVIDADE` | opcional — dias sem visita pra considerar o cliente inativo (default `45`) |
+| `WHATSAPP_TEMPLATE_RETENCAO_NAME` | opcional — nome do segundo template do WhatsApp, usado só pelo lembrete de retenção (ver 3d abaixo) |
 
 > **Não** defina `NODE_ENV` — o `next start` já roda em modo produção sozinho, e forçar
 > `NODE_ENV=production` no build faria o Railway pular dependências necessárias.
@@ -76,6 +79,27 @@ normalmente sem isso):
 4. Configure `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e
    `WHATSAPP_TEMPLATE_NAME` (e `WHATSAPP_TEMPLATE_LANG`, se o template não for
    `pt_BR`) nas Variables do Railway.
+
+> **Nota (Story 9.1):** o lembrete de retenção usa um **segundo template**,
+> aprovado separadamente na Meta, com apenas **1 variável de corpo** (nome do
+> cliente) — o template do lembrete de agendamento (4 variáveis) não pode ser
+> reaproveitado porque o contrato de variáveis de cada template da Meta é fixo.
+> Configure o nome desse segundo template em `WHATSAPP_TEMPLATE_RETENCAO_NAME`.
+
+### 3e. Cron Job de retenção (opcional, Story 9.1)
+
+Identifica clientes inativos (sem visita há `RETENCAO_DIAS_INATIVIDADE` dias e
+sem agendamento futuro) e envia um lembrete de retorno por e-mail e/ou
+WhatsApp. Só necessário se você configurou `RETENCAO_CRON_SECRET`:
+
+1. No painel do Railway, adicione um **Cron Job** que faça uma chamada HTTP
+   periódica (sugestão: **1x por dia**):
+   ```
+   GET https://<seu-domínio>/api/retencao
+   Authorization: Bearer <mesmo valor de RETENCAO_CRON_SECRET>
+   ```
+2. Sem essa chamada configurada, o app funciona normalmente — só não avisa
+   sozinho os clientes que sumiram.
 
 ## Primeiro acesso
 

@@ -86,6 +86,16 @@ export function emailConfirmacao({
   };
 }
 
+export function emailRetencao({ nome }: { nome: string }): { subject: string; html: string } {
+  return {
+    subject: "Sentimos sua falta — Seu Salão",
+    html: base(
+      "Sentimos sua falta!",
+      `Olá, ${escapeHtml(nome)}! Faz um tempo que você não aparece por aqui e sentimos sua falta. Esperamos te ver em breve!`,
+    ),
+  };
+}
+
 export function emailLembrete({
   nome,
   servicoNome,
